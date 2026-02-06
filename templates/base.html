@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zero-Trust Gateway</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+{# Define which routes are "Auth Pages" (Google Style) #}
+{% set auth_routes = ['auth.login', 'auth.register', 'auth.verify_2fa'] %}
+{% set is_admin = request.endpoint and request.endpoint.startswith('admin.') %}
+
+<body class="{% if request.endpoint in auth_routes %}auth-body{% elif is_admin %}{% else %}bg-light{% endif %}">
+
+    {# Only show Navbar if we are NOT on a login/register page AND NOT on admin pages #}
+    {% if request.endpoint not in auth_routes and (not request.endpoint or not request.endpoint.startswith('admin.')) %}
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-shield-alt"></i> Zero-Trust Gateway
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item"><a class="nav-link" href="#">Dashboard</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.setup_2fa') }}">Setup 2FA</a></li>
+                        <li class="nav-item"><a class="nav-link text-danger" href="{{ url_for('auth.logout') }}">Logout</a></li>
+                        {# User document dashboard #}
+                        <li class="nav-item">
+                            <a class="nav-link
+                                {% if request.endpoint and request.endpoint.startswith('doc.') %}
+                                    active
+                                {% endif %}"
+                            href="{{ url_for('doc.dashboard') }}">
+                                Dashboard
+                            </a>
+                        </li>
+
+                        {# Admin dashboard (only if user is admin) #}
+                        {% if current_user.is_admin %}
+                        <li class="nav-item">
+                            <a class="nav-link
+                                {% if request.endpoint and request.endpoint.startswith('admin.') %}
+                                    active
+                                {% endif %}"
+                            href="{{ url_for('admin.dashboard') }}">
+                                Admin
+                            </a>
+                        </li>
+                        {% endif %}
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Main Content Block -->
+<!-- For auth pages we let custom CSS handle layout;
+     for admin pages we also skip Bootstrap container to allow full width -->
+{% set is_admin = request.endpoint and request.endpoint.startswith('admin.') %}
+<div class="{% if request.endpoint not in auth_routes and not is_admin %}container{% endif %}">
+        
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="container mt-3" style="max-width: 450px;">
+                {% for message in messages %}
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

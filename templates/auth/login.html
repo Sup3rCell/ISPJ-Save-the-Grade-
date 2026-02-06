@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-container">
+        <div class="auth-header">
+            <!-- SVG Logo (Using a shield icon to match your project theme, colored like Google) -->
+            <svg class="auth-logo" viewBox="0 0 48 48" width="48px" height="48px">
+                <path fill="#4285F4" d="M24 4C12.95 4 4 12.95 4 24c0 11.05 8.95 20 20 20 11.05 0 20-8.95 20-20C44 12.95 35.05 4 24 4z"/>
+                <path fill="#fff" d="M24 14l-8 16h16l-8-16z"/> <!-- Simple Triangle/Shield shape -->
+            </svg>
+            
+            <h1 class="auth-title">Sign in</h1>
+            <p class="auth-subtitle">to continue to Zero-Trust Gateway</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.login') }}">
+            <!-- Email Input with Floating Label -->
+            <div class="form-floating mb-3">
+                <input type="email" class="form-control" id="email" name="email" placeholder="name@example.com" required>
+                <label for="email">Email</label>
+            </div>
+
+            <!-- Password Input -->
+            <div class="form-floating mb-3">
+                <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+                <label for="password">Password</label>
+            </div>
+
+            <!-- Forgot Password Link (Visual Only) -->
+            <div style="margin-bottom: 20px;">
+                <a href="#" style="color: #8ab4f8; text-decoration: none; font-weight: 500; font-size: 14px;">Forgot password?</a>
+            </div>
+
+            <!-- Bottom Actions -->
+            <div class="action-row">
+                <!-- Link to Register Organization -->
+                <a href="{{ url_for('auth.register_org') }}" class="btn-link-custom">Register Organization</a>
+                <!-- Primary Action Button -->
+                <button type="submit" class="btn btn-primary-google">
+                    Sign In
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Simple Footer outside the card -->
+<div class="container text-center mt-3" style="max-width: 450px; display: flex; justify-content: space-between; color: #9aa0a6; font-size: 12px;">
+    <span>English (United States)</span>
+    <div>
+        <span class="ms-3">Help</span>
+        <span class="ms-3">Privacy</span>
+        <span class="ms-3">Terms</span>
+    </div>
+</div>
+{% endblock %}

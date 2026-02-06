@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<style>
+  body {
+      background-color: #020617;
+      color: #e5e7eb;
+  }
+  .admin-fullscreen {
+    min-height: 100vh;
+    width: 100vw;
+    padding: 2rem 3vw 3rem;
+    background: radial-gradient(circle at top, #020617 0, #020617 40%, #000000 100%);
+}
+  .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+  }
+  .admin-title-block small {
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      font-size: 0.7rem;
+      color: #64748b;
+  }
+  .admin-title-block h1 {
+      font-size: 1.6rem;
+      margin: 0.2rem 0 0;
+  }
+  .admin-tabs {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+  }
+  .admin-tab {
+      padding: 0.35rem 0.9rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      color: #9ca3af;
+      background: rgba(15, 23, 42, 0.7);
+      cursor: pointer;
+  }
+  .admin-tab.active {
+      border-color: transparent;
+      background: linear-gradient(90deg,#0ea5e9,#22c55e);
+      color: #0f172a;
+      font-weight: 600;
+  }
+  .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+  }
+  .metric-card {
+      background: linear-gradient(145deg, #020617, #020617);
+      border-radius: 0.9rem;
+      padding: 1rem 1.2rem;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.9);
+  }
+  .metric-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #9ca3af;
+      margin-bottom: 0.3rem;
+  }
+  .metric-value {
+      font-size: 2rem;
+      font-weight: 600;
+  }
+  .metric-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      color: #9ca3af;
+      background-color: rgba(15, 23, 42, 0.9);
+  }
+  .metric-pill span.dot {
+      width: 0.4rem;
+      height: 0.4rem;
+      border-radius: 999px;
+      display: inline-block;
+  }
+  .dot-green { background: #22c55e; }
+  .dot-red { background: #ef4444; }
+  .dot-amber { background: #f59e0b; }
+  .dot-sky { background: #0ea5e9; }
+</style>
+
+<div class="admin-fullscreen">
+  <div class="admin-header">
+    <div class="admin-title-block">
+      <small>Security overview</small>
+      <h1>Zero-Trust Admin Console</h1>
+    </div>
+    <div class="admin-tabs">
+      <a href="{{ url_for('admin.dashboard') }}"
+         class="admin-tab active">Dashboard</a>
+      <a href="{{ url_for('admin.logs') }}"
+         class="admin-tab">Access Logs</a>
+      <a href="{{ url_for('admin.risk_history') }}"
+         class="admin-tab">Risk History</a>
+      <a href="{{ url_for('admin.documents') }}"
+         class="admin-tab">Documents</a>
+      <a href="{{ url_for('admin.honeytokens') }}"
+         class="admin-tab">Honeytokens</a>
+    </div>
+  </div>
+
+  <div class="metrics-row">
+    <div class="metric-card">
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div class="metric-label">Active sessions (15 min)</div>
+        <div class="metric-pill">
+          <span class="dot dot-green"></span> live
+        </div>
+      </div>
+      <div class="metric-value" style="color:#0ea5e9;">
+        {{ kpis.active_sessions }}
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div class="metric-label">High-risk logins (today)</div>
+        <div class="metric-pill">
+          <span class="dot dot-red"></span> critical
+        </div>
+      </div>
+      <div class="metric-value" style="color:#f97373;">
+        {{ kpis.high_risk_today }}
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div class="metric-label">Impossible travel (24h)</div>
+        <div class="metric-pill">
+          <span class="dot dot-amber"></span> anomaly
+        </div>
+      </div>
+      <div class="metric-value" style="color:#fbbf24;">
+        {{ kpis.impossible_travel_24h }}
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div class="metric-label">Honeytoken triggers (week)</div>
+        <div class="metric-pill">
+          <span class="dot dot-sky"></span> dlp
+        </div>
+      </div>
+      <div class="metric-value" style="color:#38bdf8;">
+        {{ kpis.honeytokens_week }}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

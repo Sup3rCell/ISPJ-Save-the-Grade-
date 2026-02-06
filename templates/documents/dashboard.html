@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- 1. Left Sidebar -->
+<div class="sidebar">
+    <!-- "New" Button -->
+    <button class="btn-new">
+        <i class="fas fa-plus"></i> New
+    </button>
+
+    <a href="#" class="active"><i class="fas fa-home"></i> Home</a>
+    <a href="#"><i class="fas fa-folder"></i> My Files</a>
+    <a href="#"><i class="fas fa-user-friends"></i> Shared with me</a>
+    <a href="#"><i class="fas fa-clock"></i> Recent</a>
+    <a href="#"><i class="fas fa-star"></i> Starred</a>
+    
+    <hr style="border-color: #5f6368; margin: 10px 0;">
+    
+    <a href="#"><i class="fas fa-trash"></i> Trash</a>
+</div>
+
+<!-- 2. Main Content Area -->
+<div class="main-content">
+    
+    <h2 class="mb-4">Welcome to Secure Drive</h2>
+
+    <!-- Section Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="text-secondary">Suggested files</h5>
+        <!-- Risk Score Display (Zero Trust Feature) -->
+        <span class="badge {% if session.get('risk_score', 0) > 50 %}bg-danger{% else %}bg-success{% endif %}">
+            Session Risk: {{ session.get('risk_score', 0) }}%
+        </span>
+    </div>
+
+    <!-- Table Header -->
+    <div class="file-list-header">
+        <div class="col-icon">Type</div>
+        <div class="col-name">Name</div>
+        <div class="col-owner">Owner</div>
+        <div class="col-date">Last Modified</div>
+        <div class="col-action"></div>
+    </div>
+
+    <!-- File Rows (Loop) - NOW CLICKABLE -->
+    {% for doc in documents %}
+    <div class="file-row" onclick="window.location.href='{{ url_for('doc.view_document', doc_id=doc.id) }}'" style="cursor: pointer;">
+        <div class="col-icon">
+            {% if 'pdf' in doc.name %}<i class="fas fa-file-pdf text-danger"></i>
+            {% elif 'xlsx' in doc.name %}<i class="fas fa-file-excel text-success"></i>
+            {% else %}<i class="fas fa-file-alt text-primary"></i>{% endif %}
+        </div>
+        
+        <div class="col-name">
+            {{ doc.name }} 
+            <!-- Sensitivity Badge -->
+            <span class="badge rounded-pill bg-dark border border-secondary" style="font-size: 10px;">{{ doc.classification }}</span>
+        </div>
+        
+        <div class="col-owner">{{ doc.owner }}</div>
+        <div class="col-date">{{ doc.date }}</div>
+        
+        <div class="col-action">
+            <i class="fas fa-ellipsis-v text-secondary"></i>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Empty State -->
+    {% if not documents %}
+    <div class="text-center mt-5 text-secondary">
+        <i class="fas fa-folder-open fa-3x mb-3"></i>
+        <p>No files found.</p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,302 @@
+/* Google Dark Mode Aesthetic */
+:root {
+    --bg-color: #202124;
+    --card-bg: #202124;
+    --text-primary: #e8eaed;
+    --text-secondary: #9aa0a6;
+    --input-border: #5f6368;
+    --input-focus: #8ab4f8;
+    --btn-primary: #8ab4f8;
+    --btn-primary-text: #202124;
+    --link-color: #8ab4f8;
+    --font-family: 'Roboto', 'Segoe UI', arial, sans-serif;
+}
+
+/* Default body – minimal, so admin pages work normally */
+body {
+    margin: 0;
+    font-family: var(--font-family);
+}
+
+/* Only apply centered flex layout to auth pages */
+.auth-body {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+/* The Main Card Container */
+.auth-container {
+    background-color: var(--card-bg);
+    border: 1px solid #3c4043;
+    border-radius: 8px;
+    padding: 48px 40px 36px;
+    width: 100%;
+    max-width: 450px;
+    display: flex;
+    flex-direction: column;
+    min-height: 500px; /* Min height to match look */
+}
+
+/* Logo and Header Area */
+.auth-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.auth-logo {
+    height: 24px;
+    margin-bottom: 16px;
+}
+
+.auth-title {
+    font-size: 24px;
+    font-weight: 400;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.auth-subtitle {
+    font-size: 16px;
+    color: var(--text-secondary);
+    letter-spacing: 0.1px;
+    line-height: 1.5;
+}
+
+/* Form Styling */
+.form-floating {
+    margin-bottom: 24px;
+    position: relative;
+}
+
+.form-control {
+    background-color: transparent !important;
+    border: 1px solid var(--input-border);
+    color: var(--text-primary) !important;
+    border-radius: 4px;
+    height: 56px;
+    padding: 13px 15px;
+    font-size: 16px;
+    transition: border-color 0.2s;
+}
+
+.form-control:focus {
+    background-color: transparent;
+    border-color: var(--input-focus);
+    box-shadow: none; /* Remove bootstrap glow */
+    border-width: 2px;
+}
+
+/* Floating Label Fix for Dark Mode */
+.form-floating label {
+    color: var(--text-secondary);
+    padding: 0 5px;
+    background-color: var(--card-bg); /* Mask the border behind label */
+    height: auto;
+    top: 0;
+    margin-left: 10px;
+}
+
+.form-control:focus ~ label,
+.form-control:not(:placeholder-shown) ~ label {
+    color: var(--input-focus);
+    transform: scale(0.85) translateY(-0.8rem) translateX(0.15rem);
+}
+
+/* Buttons and Links Area */
+.action-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 40px;
+}
+
+.btn-link-custom {
+    color: var(--link-color);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+    border-radius: 4px;
+    padding: 6px 8px;
+}
+
+.btn-link-custom:hover {
+    background-color: rgba(138, 180, 248, 0.08);
+}
+
+.btn-primary-google {
+    background-color: var(--btn-primary);
+    color: var(--btn-primary-text);
+    border: none;
+    border-radius: 4px; /* Slightly rounded, Google style is evolving but 4px is classic */
+    padding: 0 24px;
+    height: 36px;
+    font-weight: 500;
+    font-size: 14px;
+    letter-spacing: 0.25px;
+    transition: background-color 0.2s;
+}
+
+.btn-primary-google:hover {
+    background-color: #7c9ecc; /* Slightly darker on hover */
+}
+
+/* Footer Links (Privacy, Terms) */
+.auth-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: auto; /* Push to bottom if container grows */
+    padding-top: 20px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* Background for Auth Pages */
+.auth-body {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* --- DASHBOARD STYLES (Google Drive Dark Mode) --- */
+.sidebar {
+    height: calc(100vh - 56px); /* Account for navbar */
+    width: 250px;
+    position: fixed;
+    top: 56px; /* Below navbar */
+    left: 0;
+    background-color: #202124;
+    padding-top: 20px;
+    border-right: 1px solid #3c4043;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.sidebar a {
+    padding: 12px 25px;
+    text-decoration: none;
+    font-size: 14px;
+    color: #e8eaed;
+    display: block;
+    border-radius: 0 20px 20px 0;
+    margin-bottom: 4px;
+    transition: all 0.2s;
+}
+
+.sidebar a:hover, .sidebar a.active {
+    background-color: #3c4043;
+    color: white;
+}
+
+.sidebar i {
+    margin-right: 16px;
+    width: 20px;
+    text-align: center;
+    opacity: 0.8;
+}
+
+.btn-new {
+    display: block;
+    width: calc(100% - 50px);
+    margin: 0 25px 20px 25px;
+    background: linear-gradient(135deg, #4285f4, #34a853);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 12px 20px;
+    font-weight: 500;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(66,133,244,0.3);
+    transition: all 0.2s;
+}
+
+.btn-new:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(66,133,244,0.4);
+}
+
+.main-content {
+    margin-left: 250px;
+    padding: 32px;
+    min-height: calc(100vh - 56px);
+    background: linear-gradient(135deg, #202124 0%, #17191a 100%);
+}
+
+.file-list-header {
+    display: grid;
+    grid-template-columns: 48px 1fr 140px 120px 48px;
+    gap: 16px;
+    padding: 20px 0 12px 0;
+    font-weight: 500;
+    color: #9aa0a6;
+    border-bottom: 1px solid #3c4043;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.file-row {
+    display: grid;
+    grid-template-columns: 48px 1fr 140px 120px 48px;
+    gap: 16px;
+    padding: 16px 0;
+    align-items: center;
+    border-bottom: 1px solid #303134;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.file-row:hover {
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    margin: 0 -8px;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.col-icon i {
+    font-size: 20px;
+    width: 24px;
+    text-align: center;
+}
+
+.col-name {
+    font-weight: 500;
+    color: #e8eaed;
+    font-size: 15px;
+}
+
+.col-owner, .col-date {
+    color: #9aa0a6;
+    font-size: 14px;
+}
+
+.col-action i {
+    opacity: 0.6;
+}
+
+.col-action:hover i {
+    opacity: 1;
+}
+
+/* Responsive Mobile */
+@media (max-width: 992px) {
+    .sidebar { 
+        transform: translateX(-100%); 
+        transition: transform 0.3s; 
+    }
+    .main-content { margin-left: 0; }
+    .file-list-header, .file-row {
+        grid-template-columns: 40px 2fr 1fr 1fr 40px;
+        gap: 12px;
+    }
+}

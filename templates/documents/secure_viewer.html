@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        * { 
+            -webkit-user-select: none !important; 
+            -moz-user-select: none !important; 
+            -ms-user-select: none !important; 
+            user-select: none !important; 
+        }
+        body::selection { background: transparent !important; }
+        body::-moz-selection { background: transparent !important; }
+        
+        @media print {
+            * { visibility: hidden !important; }
+            .watermark-only { visibility: visible !important; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 999999; background: white; }
+            .content { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+    <div style="position: relative; height: 80vh; padding: 20px;">
+        <!-- FORENSIC WATERMARKS -->
+        <div class="watermark-only" style="font-size: 48px; color: #ccc; transform: rotate(-20deg); position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;">
+            {{ watermark_text }}
+        </div>
+        <div class="watermark-only" style="font-size: 72px; color: #ddd; transform: rotate(-45deg); position: absolute; top: 20%; left: 10%; pointer-events: none;">
+            SECURE DOCUMENT
+        </div>
+        
+        <!-- PROTECTED CONTENT -->
+        <div class="content" style="font-family: monospace; font-size: 16px; line-height: 1.6; pointer-events: none;">
+            <h1 style="color: #333;">{{ document.name }}</h1>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #007bff;">
+                <strong>Classification:</strong> {{ document.classification }} | 
+                <strong>Risk Score:</strong> {{ risk_score }}%
+            </div>
+            <div style="margin-top: 20px; white-space: pre-wrap;">{{ document.content }}</div>
+        </div>
+    </div>
+
+    <script>
+    // ABSOLUTE NUCLEAR DRM
+    document.onselectstart = () => false;
+    document.oncontextmenu = () => false;
+    
+    // Block ALL keyboard input
+    document.onkeydown = (e) => {
+        const blocked = [65,80,83,67,86,85,73,74]; // A,P,S,C,V,U,I,J
+        if (e.ctrlKey && blocked.includes(e.keyCode)) {
+            e.preventDefault();
+            return false;
+        }
+        if (e.keyCode >= 112 && e.keyCode <= 123) { // F1-F12
+            e.preventDefault();
+            return false;
+        }
+    };
+    
+    // Kill copy/paste/drag
+    ['copy','cut','paste','dragstart'].forEach(e=>document['on'+e]=()=>false);
+    
+    // DevTools killer
+    setInterval(()=>{
+        if(window.outerHeight-window.innerHeight>100) document.body.innerHTML='<h1>🔒 ACCESS TERMINATED</h1>';
+    },1000);
+    </script>
+
+    <script>
+    let sessionTimer;
+
+    function checkSession() {
+        fetch('/session/verify_session', {method: 'POST'})
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('risk-display').textContent = data.risk_score;
+                if (data.action === 'terminate') {
+                    alert('Session terminated: High risk detected.');
+                    window.location = '/logout';
+                } else if (data.action === 'restrict') {
+                    document.querySelector('.content').style.filter = 'blur(3px)';
+                }
+            });
+    }
+
+    // Changed: 30sec (30000ms) instead of 2min
+    sessionTimer = setInterval(checkSession, 30000);
+    document.addEventListener('visibilitychange', checkSession);
+    document.addEventListener('blur', checkSession);
+
+    window.addEventListener('beforeunload', () => clearInterval(sessionTimer));
+</script>
+<!-- Add this div after classification -->
+<div id="risk-display" style="color: red; font-weight: bold;">{{ risk_score }}%</div>
+
+</body>
+</html>
+{% endblock %}

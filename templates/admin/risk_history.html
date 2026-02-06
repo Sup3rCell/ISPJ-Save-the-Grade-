@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Risk History{% endblock %}
+
+{% block content %}
+<style>
+  body { background-color: #020617; color: #e5e7eb; }
+  .admin-fullscreen {
+      min-height: 100vh;
+      width: 100vw;
+      padding: 2rem 3vw 3rem;
+      background: radial-gradient(circle at top, #020617 0, #020617 40%, #000000 100%);
+  }
+  .admin-shell { max-width: 1200px; margin: 0 auto; }
+  .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+  }
+  .admin-title-block small {
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      font-size: 0.7rem;
+      color: #64748b;
+  }
+  .admin-title-block h1 {
+      font-size: 1.6rem;
+      margin: 0.2rem 0 0;
+  }
+  .admin-tabs {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+  }
+  .admin-tab {
+      padding: 0.35rem 0.9rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      color: #9ca3af;
+      background: rgba(15, 23, 42, 0.7);
+      cursor: pointer;
+      text-decoration: none;
+  }
+  .admin-tab.active {
+      border-color: transparent;
+      background: linear-gradient(90deg,#0ea5e9,#22c55e);
+      color: #0f172a;
+      font-weight: 600;
+  }
+  .admin-card-table {
+      background: linear-gradient(145deg, #020617, #020617);
+      border-radius: 0.9rem;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.9);
+      overflow: hidden;
+  }
+  .admin-card-table .card-header {
+      border-bottom: 1px solid rgba(51, 65, 85, 0.8);
+      background: rgba(15, 23, 42, 0.85);
+  }
+  .admin-card-table table {
+      margin-bottom: 0;
+      color: #e5e7eb;
+  }
+  .admin-card-table thead {
+      background-color: rgba(15, 23, 42, 0.95);
+  }
+  .admin-card-table td,
+  .admin-card-table th {
+      border-color: rgba(30, 41, 59, 0.9);
+      font-size: 0.8rem;
+      white-space: nowrap;
+  }
+</style>
+
+<div class="admin-fullscreen">
+  <div class="admin-shell">
+    <div class="admin-header">
+      <div class="admin-title-block">
+        <small>Risk timeline</small>
+        <h1>Risk History</h1>
+      </div>
+      <div class="admin-tabs">
+        <a href="{{ url_for('admin.dashboard') }}" class="admin-tab">Dashboard</a>
+        <a href="{{ url_for('admin.logs') }}" class="admin-tab">Access Logs</a>
+        <a href="{{ url_for('admin.risk_history') }}" class="admin-tab active">Risk History</a>
+        <a href="{{ url_for('admin.documents') }}" class="admin-tab">Documents</a>
+        <a href="{{ url_for('admin.honeytokens') }}" class="admin-tab">Honeytokens</a>
+      </div>
+    </div>
+
+    <!-- Existing risk events table -->
+    <div class="admin-card-table">
+      <div class="card-header py-2 px-3">
+        <span class="small text-muted">Session risk changes</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle">
+          <thead>
+          <tr>
+            <th>Time</th>
+            <th>User</th>
+            <th>Session ID</th>
+            <th>Risk Score</th>
+            <th>Risk Level</th>
+            <th>Trigger</th>
+          </tr>
+          </thead>
+          <tbody>
+          {% if risk_events %}
+            {% for e in risk_events %}
+            <tr>
+              <td>{{ e.time }}</td>
+              <td>{{ e.user }}</td>
+              <td>{{ e.session_id }}</td>
+              <td>{{ e.risk_score }}</td>
+              <td>{{ e.risk_level }}</td>
+              <td>{{ e.trigger }}</td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="6" class="text-center text-muted small py-4">
+                No risk events yet.
+              </td>
+            </tr>
+          {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- New impossible travel summary -->
+    <div class="admin-card-table mt-4">
+      <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center">
+        <span class="small text-muted">Recent impossible travel events</span>
+        <span class="badge bg-danger">
+          {{ impossible_count }} in last 7 days
+        </span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle">
+          <thead>
+          <tr>
+            <th>Time</th>
+            <th>User</th>
+            <th>Location</th>
+            <th>Previous Location</th>
+            <th>Speed (km/h)</th>
+          </tr>
+          </thead>
+          <tbody>
+          {% if impossible_events %}
+            {% for e in impossible_events %}
+            <tr>
+              <td>{{ e.time }}</td>
+              <td>{{ e.user }}</td>
+              <td>{{ e.location }}</td>
+              <td>{{ e.prev_location }}</td>
+              <td>{{ '%.0f'|format(e.travel_speed_kmh) }}</td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="5" class="text-center text-muted small py-4">
+                No impossible travel detected.
+              </td>
+            </tr>
+          {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
