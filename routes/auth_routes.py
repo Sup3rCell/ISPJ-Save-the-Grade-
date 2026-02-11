@@ -11,6 +11,7 @@ import io
 import base64
 from config import ipinfo_handler
 from datetime import datetime
+import hashlib
 
 
 auth_bp = Blueprint('auth', __name__)
@@ -64,12 +65,20 @@ def login():
             flash('Invalid credentials') 
             return redirect(url_for('auth.login'))
 
-        risk_score, risk_reasons = calculate_identity_risk(user)
+        # Device Fingerprinting
+        ua_string = request.headers.get('User-Agent', '')
+        current_device_hash = hashlib.sha256(ua_string.encode()).hexdigest()
+
+        # Risk Analysis
+        risk_score, risk_reasons = calculate_identity_risk(user, current_device_hash)
         
         if risk_score > 60 or user.totp_secret:
             session['pre_2fa_user_id'] = user.id
             session['risk_score'] = risk_score
             return redirect(url_for('auth.verify_2fa')) 
+        
+        user.last_device_hash = current_device_hash
+        db.session.commit()
 
         login_user(user)
         log_attempt(user.id, 'LOGIN_SUCCESS', risk_score, 'ALLOWED')
@@ -204,6 +213,10 @@ def setup_2fa():
         if totp.verify(otp_token):
             current_user.totp_secret = secret
             db.session.commit()
+
+            # Set MFA timestamp on setup too
+            session['last_mfa_time'] = datetime.utcnow().timestamp()
+
             flash("2FA Enabled Successfully!")
             return redirect(url_for('doc.dashboard'))
         else:
@@ -276,6 +289,16 @@ def verify_2fa():
             db.session.commit()
             session.pop('pre_2fa_user_id', None)
 
+            # Record the timestamp of this successful MFA
+            session['last_mfa_time'] = datetime.utcnow().timestamp()
+            
+            # Check for Step-Up Redirect (Returning to document download)
+            next_url = session.get('next_url')
+            if next_url:
+                session.pop('next_url', None)
+                log_attempt(user.id, 'STEP_UP_MFA_SUCCESS', risk, 'ALLOWED')
+                return redirect(next_url)
+
             log_attempt(user.id, 'LOGIN_2FA_SUCCESS', risk, 'ALLOWED')
             return redirect(url_for('doc.dashboard'))
         else:
@@ -289,5 +312,6 @@ def verify_2fa():
 def logout():
     log_attempt(current_user.id, 'LOGOUT', 0, 'SUCCESS')
     logout_user()
+    session.clear() # Clear risk scores and MFA timestamps
     flash('You have been logged out.')
     return redirect(url_for('auth.login'))

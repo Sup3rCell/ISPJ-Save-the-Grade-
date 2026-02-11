@@ -34,6 +34,9 @@ class User(UserMixin, db.Model):
     # Security Fields
     totp_secret = db.Column(db.String(32)) # For 2FA
     honeytoken_seed = db.Column(db.String(64))
+
+    # Device Fingerprinting
+    last_device_hash = db.Column(db.String(64))
     
     # Relationships
     logs = db.relationship('AccessLog', backref='user', lazy='dynamic')
