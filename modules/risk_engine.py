@@ -56,8 +56,16 @@ def calculate_risk_score(user_id):
     return risk_score, reasons
 
 # Your original calculate_identity_risk (unchanged)
-def calculate_identity_risk(user):
-    # ... (keep your exact code—no changes needed)
+def calculate_identity_risk(user, current_device_hash=None):
+    """
+    Analyzes identity factors to return a Risk Score (0-100).
+    Factors:
+    1. Recent Failed Logins (Brute force detection)
+    2. Unusual Time of Day (e.g., 3 AM login)
+    3. Role Sensitivity (Admins have higher baseline risk)
+    4. New/Unknown Device (Fingerprint mismatch)
+    """
+
     risk_score = 0
     reasons = []
 
@@ -86,6 +94,11 @@ def calculate_identity_risk(user):
     elif user.role == 'manager':
         risk_score += 5
         reasons.append("Privileged role (+5)")
+
+    if user.last_device_hash and current_device_hash:
+        if user.last_device_hash != current_device_hash:
+            risk_score += 30
+            reasons.append("Unknown Device Detected (+30)")
 
     risk_score = min(risk_score, 100)
     return risk_score, reasons

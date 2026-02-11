@@ -3,6 +3,7 @@ from config import Config
 from models import db, User
 from flask_login import LoginManager
 from routes import register_blueprints
+from extenstions import limiter
 
 def create_app():
     # 1. Initialize Flask
@@ -13,6 +14,8 @@ def create_app():
     
     # 3. Initialize Extensions
     db.init_app(app)
+    limiter.init_app(app) # Initialize Rate Limiter
+
     
     login = LoginManager(app)
     login.login_view = 'auth.login'
