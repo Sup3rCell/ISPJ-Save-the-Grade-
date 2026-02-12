@@ -34,15 +34,13 @@ class Config:
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_recycle": 280,
         "pool_pre_ping": True,
-        # This tells PyMySQL to use SSL (Required by Aiven) without crashing on the 'ssl-mode' keyword
-        "connect_args": {
-            "ssl": {
-                "check_hostname": False,
-                "verify_mode": ssl.CERT_NONE
-            }
-        }
+        "connect_args": {"ssl": {"check_hostname": False, "verify_mode": ssl.CERT_NONE}}
     }
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     UPLOAD_FOLDER = os.path.join(basedir, 'documents_store')
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024
+
+    # NEW: Google OAuth Config
+    GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
+    GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')

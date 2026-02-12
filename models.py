@@ -38,8 +38,18 @@ class User(UserMixin, db.Model):
     # Device Fingerprinting
     last_device_hash = db.Column(db.String(64))
     
+    session_token = db.Column(db.String(64))
     # Relationships
     logs = db.relationship('AccessLog', backref='user', lazy='dynamic')
+    password_history = db.relationship('PasswordHistory', backref='user', lazy='dynamic')
+
+# --- 3. Password History (NEW) ---
+class PasswordHistory(db.Model):
+    __tablename__ = 'password_history'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 # ... (Document, DocVersion, AccessLog remain the same, maybe add org_id to Document if needed later) ...
 class Document(db.Model):
