@@ -12,6 +12,9 @@
     --danger-color: #f28b82;
     --success-color: #81c995;
     --warning-color: #fdd663;
+    --input-border: #5f6368;
+    --input-focus: #8ab4f8;
+    --card-bg: #202124;
 }
 
 body {
@@ -176,10 +179,12 @@ body {
     z-index: 10 !important;
     transition: all 0.2s ease-in-out;
     pointer-events: none;
+    background-color: transparent;
+    /* Start transparent */
 }
 
 /* Hide ::after pseudo-element completely to avoid masking issues */
-.auth-container .form-floating label::after {
+.form-floating label::after {
     display: none !important;
 }
 
@@ -197,7 +202,8 @@ body {
     padding: 0 5px;
     height: auto;
     opacity: 1 !important;
-    /* Force visibility */
+    z-index: 20;
+    /* Ensure it sits on top of border */
 }
 
 .action-row {

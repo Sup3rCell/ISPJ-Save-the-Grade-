@@ -30,7 +30,7 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    
+
 
                     {# Admin dashboard (only if user is admin) #}
                     {% if current_user.is_admin or current_user.role == 'admin' %}
@@ -61,7 +61,8 @@
     {% set is_admin = request.endpoint and request.endpoint.startswith('admin.') %}
     {# Also skip container for document dashboard to allow full width #}
     {% set is_doc = request.endpoint and request.endpoint.startswith('doc.') %}
-    <div class="{% if request.endpoint not in auth_routes and not is_admin and not is_doc %}container{% endif %}">
+    <div
+        class="{% if request.endpoint not in auth_routes and not is_admin and not is_doc and request.endpoint != 'auth.setup_2fa' %}container{% endif %}">
 
         <!-- Flash Messages -->
         {% block flash_messages %}

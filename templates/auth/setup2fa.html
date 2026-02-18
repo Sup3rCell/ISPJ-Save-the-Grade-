@@ -1,6 +1,6 @@
-{% extends "base.html" %}
+{% extends "base_dashboard.html" %}
 
-{% block content %}
+{% block dashboard_content %}
 <div class="row justify-content-center" style="margin-top: 30px;">
     <div class="col-md-6">
         <div class="card shadow">
@@ -11,24 +11,23 @@
                 <p class="text-muted">
                     Scan this QR code with <strong>Google Authenticator</strong> or <strong>Authy</strong>.
                 </p>
-                
+
                 <div class="mb-4 p-3 d-inline-block bg-white rounded border">
                     <!-- QR Code Image -->
                     <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code" style="width: 180px; height: 180px;">
                 </div>
 
-                <div class="alert alert-secondary py-2" style="font-family: monospace; font-size: 1.1em;">
-                    Secret: {{ secret }}
-                </div>
-                
+
+
                 <hr>
-                
+
                 <form method="POST">
-                    <div class="form-group mb-3 text-start">
-                        <label class="form-label fw-bold">Verify Code</label>
-                        <input type="text" name="otp_token" class="form-control form-control-lg" placeholder="e.g. 123456" required>
-                        <div class="form-text">Enter the 6-digit code from your app to confirm setup.</div>
+                    <div class="form-floating mb-3">
+                        <input type="text" name="otp_token" class="form-control" id="otp_token"
+                            placeholder="e.g. 123456" required>
+                        <label for="otp_token">Verify Code</label>
                     </div>
+                    <div class="form-text mb-3 text-start">Enter the 6-digit code from your app to confirm setup.</div>
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary">Enable 2FA</button>
                     </div>

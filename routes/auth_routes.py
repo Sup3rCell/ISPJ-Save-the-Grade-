@@ -372,7 +372,7 @@ def setup_2fa():
     img.save(buf)
     img_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
 
-    return render_template('auth/setup_2fa.html', qr_code=img_b64, secret=secret)
+    return render_template('auth/setup2fa.html', qr_code=img_b64, secret=secret)
 
 @auth_bp.route('/verify-2fa', methods=['GET', 'POST'])
 def verify_2fa():
