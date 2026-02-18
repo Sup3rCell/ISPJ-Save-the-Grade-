@@ -18,8 +18,11 @@ class Config:
     db_url = os.environ.get('DATABASE_URL')
 
     if db_url:
-        # 2. FIX 1: Automatically convert 'mysql://' to 'mysql+pymysql://'
-        if db_url.startswith('mysql://'):
+        # 2. FIX 1: Automatically convert 'postgres://' to 'postgresql://' (for Render)
+        if db_url.startswith('postgres://'):
+            db_url = db_url.replace('postgres://', 'postgresql://', 1)
+        # Also keep the mysql fix just in case
+        elif db_url.startswith('mysql://'):
             db_url = db_url.replace('mysql://', 'mysql+pymysql://', 1)
             
         # 3. FIX 2: Remove 'ssl-mode=REQUIRED' (Causes TypeError in PyMySQL)
