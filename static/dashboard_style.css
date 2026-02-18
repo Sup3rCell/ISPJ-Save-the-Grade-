@@ -1,0 +1,286 @@
+/* Google Drive-like Dashboard Styles */
+
+:root {
+    --bg-color: #181818;
+    --surface-color: #202124;
+    --text-primary: #e8eaed;
+    --text-secondary: #9aa0a6;
+    --accent-color: #8ab4f8;
+    --hover-bg: #3c4043;
+    --border-color: #5f6368;
+    --btn-primary: #8ab4f8;
+    --success-color: #81c995;
+    --warning-color: #fdd663;
+    --danger-color: #f28b82;
+}
+
+/* === LAYOUT WRAPPER === */
+.drive-container {
+    display: flex;
+    height: calc(100vh - 56px); /* Subtract Navbar height */
+    margin-top: 56px;
+    background-color: var(--bg-color);
+    overflow: hidden;
+    color: var(--text-primary);
+}
+
+/* === SIDEBAR === */
+.drive-sidebar {
+    width: 256px;
+    background-color: var(--bg-color);
+    padding: 8px 0;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+/* New Button */
+.btn-new-drive {
+    background-color: white;
+    color: #3c4043;
+    border-radius: 24px;
+    padding: 0 24px;
+    height: 48px;
+    min-width: 120px;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    font-family: 'Google Sans', Roboto, sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    border: none;
+    margin: 8px 16px 16px;
+    transition: box-shadow 0.2s, background-color 0.2s;
+    cursor: pointer;
+}
+
+.btn-new-drive:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    background-color: #f8f9fa;
+}
+
+/* Sidebar Links */
+.nav-link-drive {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px 8px 26px;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 14px;
+    border-radius: 0 24px 24px 0;
+    margin-right: 16px;
+    transition: background-color 0.1s;
+    cursor: pointer;
+}
+
+.nav-link-drive:hover {
+    background-color: rgba(138, 180, 248, 0.08);
+}
+
+.nav-link-drive.active {
+    background-color: rgba(138, 180, 248, 0.16);
+    color: var(--accent-color);
+}
+
+.nav-link-drive i {
+    margin-right: 16px;
+    width: 20px;
+    text-align: center;
+}
+
+/* Divider */
+.drive-divider {
+    border-top: 1px solid var(--border-color);
+    margin: 8px 0;
+    opacity: 0.5;
+}
+
+/* === MAIN CONTENT === */
+.drive-main {
+    flex: 1;
+    background-color: var(--bg-color);
+    border-radius: 16px 16px 0 0;
+    padding: 16px 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header & Stats */
+.drive-header h2 {
+    font-size: 24px;
+    font-weight: 400;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+}
+
+/* Suggested Chips (Stats) */
+.stats-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.stat-chip {
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 12px 16px;
+    min-width: 140px;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.stat-chip:hover {
+    background-color: var(--hover-bg);
+}
+
+.stat-chip i {
+    font-size: 20px;
+    margin-bottom: 8px;
+}
+
+.stat-value {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.stat-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* Toolbar */
+.drive-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--surface-color);
+    padding: 8px 16px;
+    border-radius: 24px;
+    margin-bottom: 16px;
+}
+
+.search-input {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    width: 300px;
+    outline: none;
+    margin-left: 8px;
+}
+
+.filter-select {
+    background-color: transparent;
+    color: var(--text-primary);
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+}
+
+.filter-select option {
+    background-color: var(--surface-color);
+    color: var(--text-primary);
+}
+
+/* File List (Table) */
+.drive-table-header {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 100px 120px 80px;
+    padding: 0 16px 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.drive-file-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.drive-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 100px 120px 80px;
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(95, 99, 104, 0.2);
+    color: var(--text-primary);
+    font-size: 14px;
+    align-items: center;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.1s;
+}
+
+.drive-row:hover {
+    background-color: var(--hover-bg);
+}
+
+.drive-row:hover .row-actions {
+    opacity: 1;
+}
+
+.file-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.row-actions {
+    opacity: 0;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    transition: opacity 0.2s;
+}
+
+.btn-icon-action {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.btn-icon-action:hover {
+    background-color: rgba(232, 234, 237, 0.1);
+    color: var(--text-primary);
+}
+
+/* Empty State */
+.empty-drive {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 300px;
+    color: var(--text-secondary);
+}
+
+/* Modal Tweaks for Dashboard */
+.modal-content {
+    background-color: var(--surface-color);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+.modal-header, .modal-footer {
+    border-color: var(--border-color);
+}
+.dropdown-menu-dark {
+    background-color: var(--surface-color);
+    border-color: var(--border-color);
+}

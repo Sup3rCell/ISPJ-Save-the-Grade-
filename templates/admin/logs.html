@@ -1,164 +1,237 @@
-{% extends "base.html" %}
-{% block title %}Access Logs{% endblock %}
+{% extends "admin/base.html" %}
 
-{% block content %}
+{% block admin_content %}
+<div class="admin-header">
+    <h1><i class="fas fa-file-alt me-2"></i>Access Logs</h1>
+</div>
+
+<!-- Filter Section -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title">Filter Logs</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">User</label>
+                <select name="user" class="form-select">
+                    <option value="">All Users</option>
+                    {% for user in all_users %}
+                    <option value="{{ user.id }}" {% if user_filter|int == user.id %}selected{% endif %}>
+                        {{ user.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Action</label>
+                <select name="action" class="form-select">
+                    <option value="">All Actions</option>
+                    {% for action in all_actions %}
+                    <option value="{{ action }}" {% if action_filter == action %}selected{% endif %}>
+                        {{ action }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label">Risk Level</label>
+                <select name="risk_level" class="form-select">
+                    <option value="">All</option>
+                    <option value="low" {% if risk_level == 'low' %}selected{% endif %}>Low</option>
+                    <option value="medium" {% if risk_level == 'medium' %}selected{% endif %}>Medium</option>
+                    <option value="high" {% if risk_level == 'high' %}selected{% endif %}>High</option>
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label">From Date</label>
+                <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label">To Date</label>
+                <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
+            </div>
+
+            <div class="col-md-12">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search me-2"></i>Apply Filters
+                </button>
+                <a href="{{ url_for('admin.logs') }}" class="btn btn-secondary">
+                    <i class="fas fa-redo me-2"></i>Reset
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Logs Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title">Logs (Showing {{ logs.total }} results)</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>IP Address</th>
+                        <th>Location</th>
+                        <th>Risk Score</th>
+                        <th>Outcome</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs.items %}
+                    <tr>
+                        <td>
+                            <small class="text-muted">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                        </td>
+                        <td>
+                            {% if log.user %}
+                                <strong>{{ log.user.username }}</strong>
+                            {% else %}
+                                <em class="text-muted">Unknown</em>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ log.action }}</span>
+                        </td>
+                        <td>
+                            <code class="text-muted">{{ log.ip_address }}</code>
+                        </td>
+                        <td>
+                            {% if log.location %}
+                                <code class="text-muted">{{ log.location[:50] }}</code>
+                            {% else %}
+                                <em class="text-muted">N/A</em>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.risk_score >= 80 %}
+                                <span class="badge bg-danger">{{ log.risk_score }}</span>
+                            {% elif log.risk_score >= 60 %}
+                                <span class="badge bg-warning">{{ log.risk_score }}</span>
+                            {% elif log.risk_score >= 30 %}
+                                <span class="badge bg-info">{{ log.risk_score }}</span>
+                            {% else %}
+                                <span class="badge bg-success">{{ log.risk_score }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.outcome == 'success' %}
+                                <span class="badge bg-success">Success</span>
+                            {% elif log.outcome == 'denied' %}
+                                <span class="badge bg-danger">Denied</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ log.outcome or 'N/A' }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#details-{{ log.id }}">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr class="collapse" id="details-{{ log.id }}">
+                        <td colspan="8" class="bg-light p-3">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Device Info:</strong>
+                                    <p class="text-muted small">{{ log.device_info }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Risk Factors:</strong>
+                                    {% if log.risk_factors %}
+                                        <p class="text-muted small">{{ log.risk_factors }}</p>
+                                    {% else %}
+                                        <p class="text-muted">No risk factors</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if log.action_details %}
+                            <div class="row mt-2">
+                                <div class="col-md-12">
+                                    <strong>Action Details:</strong>
+                                    <pre class="text-muted small">{{ log.action_details }}</pre>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+<nav aria-label="Pagination" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if logs.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('admin.logs', page=1, user=user_filter, action=action_filter, risk_level=risk_level, start_date=start_date, end_date=end_date) }}">First</a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('admin.logs', page=logs.prev_num, user=user_filter, action=action_filter, risk_level=risk_level, start_date=start_date, end_date=end_date) }}">Previous</a>
+        </li>
+        {% endif %}
+
+        {% for page_num in logs.iter_pages() %}
+            {% if page_num %}
+                {% if page_num == logs.page %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_num }}</span>
+                </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('admin.logs', page=page_num, user=user_filter, action=action_filter, risk_level=risk_level, start_date=start_date, end_date=end_date) }}">{{ page_num }}</a>
+                </li>
+                {% endif %}
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if logs.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('admin.logs', page=logs.next_num, user=user_filter, action=action_filter, risk_level=risk_level, start_date=start_date, end_date=end_date) }}">Next</a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('admin.logs', page=logs.pages, user=user_filter, action=action_filter, risk_level=risk_level, start_date=start_date, end_date=end_date) }}">Last</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+
 <style>
-  body { background-color: #020617; color: #e5e7eb; }
-
-  .admin-fullscreen {
-      min-height: 100vh;
-      width: 100vw;
-      padding: 2rem 3vw 3rem;
-      background: radial-gradient(circle at top, #020617 0, #020617 40%, #000000 100%);
-      overflow-x: hidden;
-  }
-  .admin-shell {
-    max-width: 100%;   /* change from 1200px */
-    margin: 0 auto;
-    overflow-x: hidden;
+.table {
+    font-size: 13px;
 }
-  .admin-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1.5rem;
-  }
-  .admin-title-block small {
-      text-transform: uppercase;
-      letter-spacing: .12em;
-      font-size: 0.7rem;
-      color: #64748b;
-  }
-  .admin-title-block h1 {
-      font-size: 1.6rem;
-      margin: 0.2rem 0 0;
-  }
-  .admin-tabs {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-  }
-  .admin-tab {
-      padding: 0.35rem 0.9rem;
-      border-radius: 999px;
-      font-size: 0.8rem;
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      color: #9ca3af;
-      background: rgba(15, 23, 42, 0.7);
-      cursor: pointer;
-      text-decoration: none;
-  }
-  .admin-tab.active {
-      border-color: transparent;
-      background: linear-gradient(90deg,#0ea5e9,#22c55e);
-      color: #0f172a;
-      font-weight: 600;
-  }
 
-  .admin-card-table {
-      background: linear-gradient(145deg, #020617, #020617);
-      border-radius: 0.9rem;
-      border: 1px solid rgba(148, 163, 184, 0.25);
-      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.9);
-      overflow: hidden;
-  }
-  .admin-card-table .card-header {
-      border-bottom: 1px solid rgba(51, 65, 85, 0.8);
-      background: rgba(15, 23, 42, 0.85);
-  }
-  .admin-card-table table {
-      margin-bottom: 0;
-      color: #e5e7eb;
-  }
-  .admin-card-table thead {
-      background-color: rgba(15, 23, 42, 0.95);
-  }
-  .admin-card-table tbody tr {
-      background-color: transparent;
-  }
-  .admin-card-table tbody tr:nth-child(even) {
-      background-color: rgba(15, 23, 42, 0.75);
-  }
-  .admin-card-table td,
-  .admin-card-table th {
-      border-color: rgba(30, 41, 59, 0.9);
-      font-size: 0.8rem;
-      white-space: normal;
-  }
-.table-responsive {
-    max-width: 100%;
+.table td {
+    vertical-align: middle;
+}
+
+pre {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 4px;
     overflow-x: auto;
 }
-/* Make table wider than viewport so scrollbar appears,
-   but not push the whole page */
-.admin-card-table table {
-    margin-bottom: 0;
-    color: #e5e7eb;
-    min-width: 900px;   /* adjust until navbar is fully visible */
+
+.badge {
+    padding: 6px 10px;
 }
 </style>
-
-<div class="admin-fullscreen">
-  <div class="admin-shell">
-    <div class="admin-header">
-      <div class="admin-title-block">
-        <small>Audit trail</small>
-        <h1>Access Logs</h1>
-      </div>
-      <div class="admin-tabs">
-        <a href="{{ url_for('admin.dashboard') }}" class="admin-tab">Dashboard</a>
-        <a href="{{ url_for('admin.logs') }}" class="admin-tab active">Access Logs</a>
-        <a href="{{ url_for('admin.risk_history') }}" class="admin-tab">Risk History</a>
-        <a href="{{ url_for('admin.documents') }}" class="admin-tab">Documents</a>
-        <a href="{{ url_for('admin.honeytokens') }}" class="admin-tab">Honeytokens</a>
-      </div>
-    </div>
-
-    <div class="admin-card-table">
-      <div class="card-header d-flex justify-content-between align-items-center py-2 px-3">
-        <span class="small text-muted">Latest access events</span>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-sm table-hover align-middle">
-          <thead>
-          <tr>
-            <th>Time</th>
-            <th>User</th>
-            <th>Action</th>
-            <th>Document</th>
-            <th>IP</th>
-            <th>Country</th>
-            <th>Risk Score</th>
-            <th>Risk Level</th>
-            <th>Result</th>
-          </tr>
-          </thead>
-          <tbody>
-          {% if access_logs %}
-            {% for log in access_logs %}
-            <tr>
-              <td>{{ log.time }}</td>
-              <td>{{ log.user }}</td>
-              <td>{{ log.action }}</td>
-              <td>{{ log.document or '-' }}</td>
-              <td>{{ log.ip }}</td>
-              <td>{{ log.country }}</td>
-              <td>{{ log.risk_score }}</td>
-              <td>{{ log.risk_level }}</td>
-              <td>{{ log.result }}</td>
-            </tr>
-            {% endfor %}
-          {% else %}
-            <tr>
-              <td colspan="9" class="text-center text-muted small py-4">
-                No access logs yet.
-              </td>
-            </tr>
-          {% endif %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</div>
 {% endblock %}

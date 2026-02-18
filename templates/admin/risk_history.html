@@ -1,178 +1,346 @@
-{% extends "base.html" %}
-{% block title %}Risk History{% endblock %}
+{% extends "admin/base.html" %}
 
-{% block content %}
+{% block admin_content %}
+<div class="admin-header">
+    <h1><i class="fas fa-exclamation-triangle me-2"></i>Risk History & Analysis</h1>
+</div>
+
+<!-- Filter Section -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title">Analysis Filters</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Time Period (Days)</label>
+                <select name="days" class="form-select">
+                    <option value="7" {% if days == 7 %}selected{% endif %}>Last 7 days</option>
+                    <option value="30" {% if days == 30 %}selected{% endif %}>Last 30 days</option>
+                    <option value="90" {% if days == 90 %}selected{% endif %}>Last 90 days</option>
+                    <option value="180" {% if days == 180 %}selected{% endif %}>Last 6 months</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Risk Threshold</label>
+                <input type="number" name="threshold" class="form-control" value="{{ threshold }}" min="0" max="100">
+            </div>
+            <div class="col-md-12">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-chart-line me-2"></i>Refresh Analysis
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Risk Summary Cards -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Risk Score Trend</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="riskTrendChart" height="80"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="row g-3">
+            <div class="col-12">
+                <div class="stat-card">
+                    <div class="stat-label">Total High-Risk Events</div>
+                    <div class="stat-value text-danger">{{ total_events }}</div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="stat-card">
+                    <div class="stat-label">Threshold</div>
+                    <div class="stat-value">{{ threshold }}</div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="stat-card">
+                    <div class="stat-label">Days Analyzed</div>
+                    <div class="stat-value">{{ days }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Risk Factors Breakdown -->
+<div class="row mb-4">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Common Risk Factors</h5>
+            </div>
+            <div class="card-body">
+                {% if risk_factors_summary %}
+                <div class="risk-factors-list">
+                    {% for factor, count in risk_factors_summary.items() | sort(attribute='1', reverse=true) %}
+                    <div class="risk-factor-item">
+                        <div class="factor-name">
+                            <strong>{{ factor }}</strong>
+                            <span class="badge bg-danger float-end">{{ count }}</span>
+                        </div>
+                        <div class="progress" style="height: 20px;">
+                            {% set percentage = (count / total_events * 100) if total_events > 0 else 0 %}
+                            <div class="progress-bar bg-danger" style="width: {{ percentage | int }}%"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted text-center">No risk factors found</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Daily Risk Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Avg Risk</th>
+                                <th>Max Risk</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for date, stats in (risk_trend.items() | reverse | list)[:14] %}
+                            <tr>
+                                <td><small>{{ date }}</small></td>
+                                <td>
+                                    {% if stats.avg >= 60 %}
+                                        <span class="badge bg-danger">{{ stats.avg }}</span>
+                                    {% elif stats.avg >= 30 %}
+                                        <span class="badge bg-warning">{{ stats.avg }}</span>
+                                    {% else %}
+                                        <span class="badge bg-success">{{ stats.avg }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if stats.max >= 80 %}
+                                        <strong class="text-danger">{{ stats.max }}</strong>
+                                    {% elif stats.max >= 60 %}
+                                        <strong class="text-warning">{{ stats.max }}</strong>
+                                    {% else %}
+                                        <strong class="text-success">{{ stats.max }}</strong>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- High-Risk Events Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title">High-Risk Events (Top 100)</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Risk Score</th>
+                        <th>Risk Factors</th>
+                        <th>Location</th>
+                        <th>IP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in high_risk_logs %}
+                    <tr class="{% if log.risk_score >= 80 %}table-danger{% elif log.risk_score >= 60 %}table-warning{% endif %}">
+                        <td>
+                            <small>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                        </td>
+                        <td>
+                            {% if log.user %}
+                                <strong>{{ log.user.username }}</strong>
+                            {% else %}
+                                <em class="text-muted">Unknown</em>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ log.action }}</span>
+                        </td>
+                        <td>
+                            {% if log.risk_score >= 80 %}
+                                <span class="badge bg-danger">{{ log.risk_score }}</span>
+                            {% elif log.risk_score >= 60 %}
+                                <span class="badge bg-warning">{{ log.risk_score }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small>
+                                {% if log.risk_factors %}
+                                    <span class="badge bg-secondary">{{ log.risk_factors[:60] }}</span>
+                                {% else %}
+                                    <em class="text-muted">-</em>
+                                {% endif %}
+                            </small>
+                        </td>
+                        <td>
+                            {% if log.location %}
+                                <small>{{ log.location[:50] }}</small>
+                            {% else %}
+                                <em class="text-muted">-</em>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <code style="font-size: 11px;">{{ log.ip_address }}</code>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% if not high_risk_logs %}
+            <div class="p-4 text-center text-muted">
+                <i class="fas fa-check-circle fa-3x mb-3 d-block" style="opacity: 0.3; color: #27ae60;"></i>
+                <p>No high-risk events found</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
 <style>
-  body { background-color: #020617; color: #e5e7eb; }
-  .admin-fullscreen {
-      min-height: 100vh;
-      width: 100vw;
-      padding: 2rem 3vw 3rem;
-      background: radial-gradient(circle at top, #020617 0, #020617 40%, #000000 100%);
-  }
-  .admin-shell { max-width: 1200px; margin: 0 auto; }
-  .admin-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1.5rem;
-  }
-  .admin-title-block small {
-      text-transform: uppercase;
-      letter-spacing: .12em;
-      font-size: 0.7rem;
-      color: #64748b;
-  }
-  .admin-title-block h1 {
-      font-size: 1.6rem;
-      margin: 0.2rem 0 0;
-  }
-  .admin-tabs {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-  }
-  .admin-tab {
-      padding: 0.35rem 0.9rem;
-      border-radius: 999px;
-      font-size: 0.8rem;
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      color: #9ca3af;
-      background: rgba(15, 23, 42, 0.7);
-      cursor: pointer;
-      text-decoration: none;
-  }
-  .admin-tab.active {
-      border-color: transparent;
-      background: linear-gradient(90deg,#0ea5e9,#22c55e);
-      color: #0f172a;
-      font-weight: 600;
-  }
-  .admin-card-table {
-      background: linear-gradient(145deg, #020617, #020617);
-      border-radius: 0.9rem;
-      border: 1px solid rgba(148, 163, 184, 0.25);
-      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.9);
-      overflow: hidden;
-  }
-  .admin-card-table .card-header {
-      border-bottom: 1px solid rgba(51, 65, 85, 0.8);
-      background: rgba(15, 23, 42, 0.85);
-  }
-  .admin-card-table table {
-      margin-bottom: 0;
-      color: #e5e7eb;
-  }
-  .admin-card-table thead {
-      background-color: rgba(15, 23, 42, 0.95);
-  }
-  .admin-card-table td,
-  .admin-card-table th {
-      border-color: rgba(30, 41, 59, 0.9);
-      font-size: 0.8rem;
-      white-space: nowrap;
-  }
+.stat-card {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.stat-label {
+    font-size: 13px;
+    color: #7f8c8d;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+
+.stat-value {
+    font-size: 28px;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.risk-factors-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.risk-factor-item {
+    padding: 10px 0;
+}
+
+.factor-name {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+
+.table-responsive {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.badge {
+    padding: 4px 8px;
+    font-size: 11px;
+}
 </style>
 
-<div class="admin-fullscreen">
-  <div class="admin-shell">
-    <div class="admin-header">
-      <div class="admin-title-block">
-        <small>Risk timeline</small>
-        <h1>Risk History</h1>
-      </div>
-      <div class="admin-tabs">
-        <a href="{{ url_for('admin.dashboard') }}" class="admin-tab">Dashboard</a>
-        <a href="{{ url_for('admin.logs') }}" class="admin-tab">Access Logs</a>
-        <a href="{{ url_for('admin.risk_history') }}" class="admin-tab active">Risk History</a>
-        <a href="{{ url_for('admin.documents') }}" class="admin-tab">Documents</a>
-        <a href="{{ url_for('admin.honeytokens') }}" class="admin-tab">Honeytokens</a>
-      </div>
-    </div>
+<script>
+// Risk Trend Chart
+const riskTrendCtx = document.getElementById('riskTrendChart');
+if (riskTrendCtx) {
+    const riskTrendData = JSON.parse('{{ risk_trend | tojson | safe }}');
+    const labels = Object.keys(riskTrendData).sort();
+    const avgData = labels.map(date => riskTrendData[date].avg);
+    const maxData = labels.map(date => riskTrendData[date].max);
 
-    <!-- Existing risk events table -->
-    <div class="admin-card-table">
-      <div class="card-header py-2 px-3">
-        <span class="small text-muted">Session risk changes</span>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-sm table-hover align-middle">
-          <thead>
-          <tr>
-            <th>Time</th>
-            <th>User</th>
-            <th>Session ID</th>
-            <th>Risk Score</th>
-            <th>Risk Level</th>
-            <th>Trigger</th>
-          </tr>
-          </thead>
-          <tbody>
-          {% if risk_events %}
-            {% for e in risk_events %}
-            <tr>
-              <td>{{ e.time }}</td>
-              <td>{{ e.user }}</td>
-              <td>{{ e.session_id }}</td>
-              <td>{{ e.risk_score }}</td>
-              <td>{{ e.risk_level }}</td>
-              <td>{{ e.trigger }}</td>
-            </tr>
-            {% endfor %}
-          {% else %}
-            <tr>
-              <td colspan="6" class="text-center text-muted small py-4">
-                No risk events yet.
-              </td>
-            </tr>
-          {% endif %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- New impossible travel summary -->
-    <div class="admin-card-table mt-4">
-      <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center">
-        <span class="small text-muted">Recent impossible travel events</span>
-        <span class="badge bg-danger">
-          {{ impossible_count }} in last 7 days
-        </span>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-sm table-hover align-middle">
-          <thead>
-          <tr>
-            <th>Time</th>
-            <th>User</th>
-            <th>Location</th>
-            <th>Previous Location</th>
-            <th>Speed (km/h)</th>
-          </tr>
-          </thead>
-          <tbody>
-          {% if impossible_events %}
-            {% for e in impossible_events %}
-            <tr>
-              <td>{{ e.time }}</td>
-              <td>{{ e.user }}</td>
-              <td>{{ e.location }}</td>
-              <td>{{ e.prev_location }}</td>
-              <td>{{ '%.0f'|format(e.travel_speed_kmh) }}</td>
-            </tr>
-            {% endfor %}
-          {% else %}
-            <tr>
-              <td colspan="5" class="text-center text-muted small py-4">
-                No impossible travel detected.
-              </td>
-            </tr>
-          {% endif %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-  </div>
-</div>
+    new Chart(riskTrendCtx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Average Risk',
+                    data: avgData,
+                    borderColor: '#f39c12',
+                    backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'Max Risk',
+                    data: maxData,
+                    borderColor: '#e74c3c',
+                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        color: '#7f8c8d'
+                    },
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)'
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: '#7f8c8d'
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+}
+</script>
 {% endblock %}
