@@ -1,0 +1,387 @@
+{% extends "base.html" %}
+
+{# Disable default flash messages from base.html as we handle them with floating alerts #}
+{% block flash_messages %}{% endblock %}
+
+{% block content %}
+<!-- Dashboard Specific CSS -->
+<link rel="stylesheet" href="{{ url_for('static', filename='dashboard_style.css') }}">
+
+<div class="dashboard-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <!-- New Button (Triggers Modal Directly) -->
+        <button class="btn-new" type="button" data-bs-toggle="modal" data-bs-target="#uploadModal">
+            <i class="fas fa-plus text-danger" style="margin-right: 10px;"></i>
+            <span>New</span>
+        </button>
+
+        <!-- Navigation Links -->
+        <div class="sidebar-nav">
+            <a href="{{ url_for('doc.dashboard') }}"
+                class="nav-item {% if request.endpoint == 'doc.dashboard' %}active{% endif %}">
+                <i class="fas fa-home"></i> Home
+            </a>
+            <a href="{{ url_for('doc.dashboard') }}" class="nav-item">
+                <i class="fas fa-hdd"></i> My Drive
+            </a>
+            <a href="{{ url_for('doc.starred_dashboard') }}"
+                class="nav-item {% if request.endpoint == 'doc.starred_dashboard' %}active{% endif %}">
+                <i class="fas fa-star"></i> Starred
+            </a>
+            <a href="{{ url_for('doc.shared_with_me') }}"
+                class="nav-item {% if request.endpoint == 'doc.shared_with_me' %}active{% endif %}">
+                <i class="fas fa-user-friends"></i> Shared with me
+            </a>
+           
+            <hr class="sidebar-divider">
+
+            <a href="{{ url_for('doc.trash') }}"
+                class="nav-item {% if request.endpoint == 'doc.trash' %}active{% endif %}">
+                <i class="fas fa-trash"></i> Trash
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        {% block dashboard_content %}{% endblock %}
+    </div>
+
+    <!-- Share Modal -->
+    <div class="modal fade" id="shareModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Share "<span id="shareDocName"></span>"</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Tabs -->
+                    <ul class="nav nav-tabs mb-3" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#invite-panel"
+                                type="button">Invite People</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#link-panel" type="button"
+                                onclick="fetchLinkIfNeeded()">Get Link</button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <!-- Invite Panel -->
+                        <div class="tab-pane fade show active" id="invite-panel">
+                            <div class="mb-3">
+                                <label class="form-label small text-muted">Enter email address to invite:</label>
+                                <div class="input-group">
+                                    <input type="email" class="form-control" id="shareEmailInput"
+                                        placeholder="user@example.com">
+                                    <button class="btn btn-primary" onclick="sendInvite()">Send</button>
+                                </div>
+                            </div>
+                            <div id="inviteResult" class="mt-2" style="display:none;"></div>
+                        </div>
+
+                        <!-- Link Panel -->
+                        <div class="tab-pane fade" id="link-panel">
+                            <p class="small text-muted">Anyone in the organization with this link can view this file.
+                            </p>
+                            <div class="input-group mb-3">
+                                <input type="text" class="form-control" id="shareLinkInput" readonly
+                                    placeholder="Click Generate to get link">
+                                <button class="btn btn-outline-secondary" type="button" onclick="copyShareLink()">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                            <div id="shareLoading" class="text-center" style="display: none;">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                Generating link...
+                            </div>
+                            <div class="text-center">
+                                <button class="btn btn-sm btn-outline-primary" onclick="forceGenerateLink()">Generate
+                                    Link</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endblock %}
+
+    {% block scripts %}
+    {{ super() }} <!-- Check if base.html has scripts block, I assume so or I append to end of content -->
+    <!-- I'll just put script tag inside content block if unsure, or verify base.html. 
+     Actually, base.html usually has a scripts block. 
+     Let me check base_dashboard line 1. It extends base.html.
+     I'll append the script inside the content block for safety if I can't verify base.html quickly, 
+     or just put it at the end of content block.
+     But I need to be careful with nesting.
+-->
+
+    <script>
+        let currentDocId = null;
+
+        function toggleStar(docId, el) {
+            // Optimistic UI update
+            const icon = el; // 'el' is the <i> tag
+            const isStarred = icon.classList.contains('fas');
+
+            if (isStarred) {
+                icon.classList.remove('fas', 'text-warning');
+                icon.classList.add('far', 'text-secondary');
+            } else {
+                icon.classList.remove('far', 'text-secondary');
+                icon.classList.add('fas', 'text-warning');
+            }
+
+            fetch(`/documents/star/${docId}`, { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status !== 'success') {
+                        // Revert on failure
+                        if (isStarred) {
+                            icon.classList.add('fas', 'text-warning');
+                            icon.classList.remove('far', 'text-secondary');
+                        } else {
+                            icon.classList.add('far', 'text-secondary');
+                            icon.classList.remove('fas', 'text-warning');
+                        }
+                        alert('Failed to update star status.');
+                    }
+                })
+                .catch(err => console.error(err));
+        }
+
+        function openShareModal(docId, docName) {
+            currentDocId = docId;
+            document.getElementById('shareDocName').innerText = docName;
+
+            // Reset inputs
+            document.getElementById('shareEmailInput').value = '';
+            document.getElementById('shareLinkInput').value = '';
+            document.getElementById('inviteResult').style.display = 'none';
+            document.getElementById('shareLoading').style.display = 'none';
+
+            // Reset Tabs
+            const triggerEl = document.querySelector('#shareModal button[data-bs-target="#invite-panel"]');
+            bootstrap.Tab.getInstance(triggerEl)?.show() || new bootstrap.Tab(triggerEl).show();
+
+            const modal = new bootstrap.Modal(document.getElementById('shareModal'));
+            modal.show();
+        }
+
+        function sendInvite() {
+            const email = document.getElementById('shareEmailInput').value;
+            if (!email) return;
+
+            const resultDiv = document.getElementById('inviteResult');
+            resultDiv.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('email', email);
+
+            fetch(`/documents/share/invite/${currentDocId}`, { method: 'POST', body: formData })
+                .then(r => r.json())
+                .then(data => {
+                    resultDiv.style.display = 'block';
+                    if (data.status === 'success') {
+                        resultDiv.innerHTML = `<div class="alert alert-success py-1">${data.message}</div>`;
+                        document.getElementById('shareEmailInput').value = '';
+                    } else {
+                        resultDiv.innerHTML = `<div class="alert alert-danger py-1">${data.message}</div>`;
+                    }
+                })
+                .catch(err => {
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = `<div class="alert alert-danger py-1">Network Error</div>`;
+                });
+        }
+
+        function fetchLinkIfNeeded() {
+            const input = document.getElementById('shareLinkInput');
+            if (!input.value) {
+                forceGenerateLink();
+            }
+        }
+
+        function forceGenerateLink() {
+            const input = document.getElementById('shareLinkInput');
+            const loading = document.getElementById('shareLoading');
+
+            loading.style.display = 'block';
+
+            fetch(`/documents/share/${currentDocId}`, { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    loading.style.display = 'none';
+                    if (data.status === 'success') {
+                        input.value = data.link;
+                    } else {
+                        alert(data.message || 'Error generating link');
+                    }
+                })
+                .catch(err => {
+                    loading.style.display = 'none';
+                    alert('Network error');
+                });
+        }
+
+        function copyShareLink() {
+            const copyText = document.getElementById("shareLinkInput");
+            copyText.select();
+            copyText.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(copyText.value);
+
+            // Visual feedback
+            const btn = copyText.nextElementSibling;
+            const original = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i>';
+            setTimeout(() => btn.innerHTML = original, 2000);
+        }
+    </script>
+</div>
+
+<!-- Flash Messages (Floating) -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="alert-container">
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+</div>
+
+<!-- Reusable Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Upload File</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label">Select File</label>
+                        <input type="file" class="form-control" id="fileInput" name="file" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Classification</label>
+                        <select class="form-select" id="classification" name="classification">
+                            <option value="public">Public</option>
+                            <option value="internal" selected>Internal</option>
+                            <option value="confidential">Confidential</option>
+                            <option value="restricted">Restricted</option>
+                        </select>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input class="form-check-input" type="checkbox" id="autoEncrypt" name="auto_encrypt">
+                        <label class="form-check-label" for="autoEncrypt">Encrypt immediately</label>
+                    </div>
+                </form>
+
+                <!-- Conflict Resolution UI -->
+                <div id="conflictResolution" class="text-center" style="display: none;">
+                    <div class="mb-3">
+                        <i class="fas fa-exclamation-triangle text-warning fa-3x"></i>
+                    </div>
+                    <h5>File already exists</h5>
+                    <p class="text-secondary small">A file with this name already exists in your account. What strictly
+                        would you like to do?</p>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button class="btn btn-outline-danger" onclick="uploadDocument('replace')">
+                            <i class="fas fa-sync-alt me-2"></i> Replace existing file
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="uploadDocument('rename')">
+                            <i class="fas fa-copy me-2"></i> Keep both files
+                        </button>
+                    </div>
+                </div>
+                <div id="uploadProgress" class="mt-3" style="display: none;">
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+                    </div>
+                    <p class="text-center mt-2 small text-muted">Uploading...</p>
+                </div>
+                <div id="uploadResult" class="mt-3" style="display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="uploadDocument()">Upload</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Global Upload Logic
+    function uploadDocument(resolution = null) {
+        const form = document.getElementById('uploadForm');
+        const formData = new FormData(form);
+
+        if (resolution) {
+            formData.append('resolution', resolution);
+        }
+
+        // UI State: Uploading
+        document.getElementById('uploadForm').style.display = resolution ? 'none' : 'block'; // Hide form if resolving
+        document.getElementById('conflictResolution').style.display = 'none';
+        document.getElementById('uploadProgress').style.display = 'block';
+        document.getElementById('uploadResult').style.display = 'none';
+
+        fetch('/documents/upload', { method: 'POST', body: formData })
+            .then(r => r.json().then(data => ({ status: r.status, body: data })))
+            .then(({ status, body }) => {
+                document.getElementById('uploadProgress').style.display = 'none';
+
+                if (status === 200) {
+                    // Success
+                    document.getElementById('uploadResult').innerHTML = `<div class="alert alert-success">Upload successful!</div>`;
+                    document.getElementById('uploadResult').style.display = 'block';
+                    setTimeout(() => {
+                        const modalEl = document.getElementById('uploadModal');
+                        const modal = bootstrap.Modal.getInstance(modalEl);
+                        if (modal) modal.hide();
+                        resetUploadModal();
+                        if (typeof loadDocuments === 'function') loadDocuments();
+                        else window.location.reload();
+                    }, 1000);
+                } else if (status === 409) {
+                    // Conflict - Show Resolution UI
+                    document.getElementById('uploadForm').style.display = 'none';
+                    document.getElementById('conflictResolution').style.display = 'block';
+                } else {
+                    // Error
+                    document.getElementById('uploadResult').innerHTML = `<div class="alert alert-danger">${body.error}</div>`;
+                    document.getElementById('uploadResult').style.display = 'block';
+                    document.getElementById('uploadForm').style.display = 'block'; // Show form again to retry
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('uploadProgress').style.display = 'none';
+                document.getElementById('uploadResult').innerHTML = `<div class="alert alert-danger">Upload failed.</div>`;
+                document.getElementById('uploadResult').style.display = 'block';
+            });
+    }
+
+    function resetUploadModal() {
+        document.getElementById('uploadForm').reset();
+        document.getElementById('uploadForm').style.display = 'block';
+        document.getElementById('conflictResolution').style.display = 'none';
+        document.getElementById('uploadResult').style.display = 'none';
+        document.getElementById('uploadProgress').style.display = 'none';
+    }
+
+    // Reset modal on close
+    document.getElementById('uploadModal').addEventListener('hidden.bs.modal', resetUploadModal);
+</script>
+{% endblock %}

@@ -1,286 +1,189 @@
-/* Google Drive-like Dashboard Styles */
+/* Google Drive Dark Theme - Dashboard Only */
 
 :root {
-    --bg-color: #181818;
-    --surface-color: #202124;
-    --text-primary: #e8eaed;
-    --text-secondary: #9aa0a6;
-    --accent-color: #8ab4f8;
-    --hover-bg: #3c4043;
-    --border-color: #5f6368;
-    --btn-primary: #8ab4f8;
-    --success-color: #81c995;
-    --warning-color: #fdd663;
-    --danger-color: #f28b82;
+    --dashboard-bg: #1f1f1f;
+    --dashboard-sidebar: #0b0b0b;
+    --dashboard-text: #e3e3e3;
+    --dashboard-text-sec: #c4c7c5;
+    --dashboard-hover: #303030;
+    --dashboard-border: #444746;
+    --dashboard-accent: #a8c7fa;
+    --dashboard-accent-text: #062e6f;
 }
 
-/* === LAYOUT WRAPPER === */
-.drive-container {
-    display: flex;
-    height: calc(100vh - 56px); /* Subtract Navbar height */
-    margin-top: 56px;
-    background-color: var(--bg-color);
-    overflow: hidden;
-    color: var(--text-primary);
+body {
+    background-color: var(--dashboard-bg) !important;
+    color: var(--dashboard-text) !important;
 }
 
-/* === SIDEBAR === */
-.drive-sidebar {
-    width: 256px;
-    background-color: var(--bg-color);
-    padding: 8px 0;
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
+/* Navbar Overrides */
+.navbar {
+    background-color: var(--dashboard-sidebar) !important;
+    border-bottom: none !important;
+    height: 64px;
+    padding-left: 16px;
 }
 
-/* New Button */
-.btn-new-drive {
-    background-color: white;
-    color: #3c4043;
-    border-radius: 24px;
-    padding: 0 24px;
-    height: 48px;
-    min-width: 120px;
-    display: inline-flex;
+/* Sidebar Overrides */
+.sidebar {
+    background-color: var(--dashboard-sidebar) !important;
+    border-right: none !important;
+    top: 64px !important;
+    height: calc(100vh - 64px) !important;
+    width: 256px !important;
+}
+
+.sidebar .btn-new {
+    background-color: #e3e3e3 !important;
+    color: #1f1f1f !important;
+    border-radius: 16px !important;
+    height: 56px !important;
+    width: auto !important;
+    min-width: 100px !important;
+    padding: 0 24px !important;
+    display: inline-flex !important;
     align-items: center;
     gap: 12px;
-    font-family: 'Google Sans', Roboto, sans-serif;
-    font-weight: 500;
-    font-size: 14px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-    border: none;
-    margin: 8px 16px 16px;
-    transition: box-shadow 0.2s, background-color 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+    margin-bottom: 16px !important;
+}
+
+.sidebar .btn-new:hover {
+    background-color: #f0f0f0 !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5) !important;
+}
+
+.sidebar a {
+    border-radius: 24px !important;
+    margin: 0 16px 4px 16px !important;
+    padding: 0 24px !important;
+    height: 32px !important;
+    line-height: 32px !important;
+}
+
+.sidebar a:hover {
+    background-color: var(--dashboard-hover) !important;
+}
+
+.sidebar a.active {
+    background-color: #004a77 !important;
+    color: #c2e7ff !important;
+}
+
+/* Layout Overrides */
+.dashboard-container {
+    background-color: var(--dashboard-sidebar) !important;
+    padding-top: 64px !important;
+}
+
+.main-content {
+    background-color: var(--dashboard-bg) !important;
+    margin-left: 256px !important;
+    margin-right: 16px !important;
+    border-radius: 16px 16px 0 0 !important;
+    height: calc(100vh - 64px) !important;
+    padding-top: 16px !important;
+}
+
+/* Risk Badges Override */
+.badge.bg-success {
+    color: #fff !important;
+}
+
+.badge.bg-danger {
+    color: #fff !important;
+}
+
+.badge.bg-warning {
+    color: #212529 !important;
+}
+
+/* Suggestion Cards */
+.suggested-card {
+    background-color: #303134 !important;
+    border: 1px solid var(--dashboard-border) !important;
+    border-radius: 12px !important;
+    padding: 16px !important;
+    width: 260px !important;
     cursor: pointer;
-}
-
-.btn-new-drive:hover {
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-    background-color: #f8f9fa;
-}
-
-/* Sidebar Links */
-.nav-link-drive {
-    display: flex;
-    align-items: center;
-    padding: 8px 12px 8px 26px;
-    color: var(--text-primary);
-    text-decoration: none;
-    font-size: 14px;
-    border-radius: 0 24px 24px 0;
-    margin-right: 16px;
-    transition: background-color 0.1s;
-    cursor: pointer;
-}
-
-.nav-link-drive:hover {
-    background-color: rgba(138, 180, 248, 0.08);
-}
-
-.nav-link-drive.active {
-    background-color: rgba(138, 180, 248, 0.16);
-    color: var(--accent-color);
-}
-
-.nav-link-drive i {
-    margin-right: 16px;
-    width: 20px;
-    text-align: center;
-}
-
-/* Divider */
-.drive-divider {
-    border-top: 1px solid var(--border-color);
-    margin: 8px 0;
-    opacity: 0.5;
-}
-
-/* === MAIN CONTENT === */
-.drive-main {
-    flex: 1;
-    background-color: var(--bg-color);
-    border-radius: 16px 16px 0 0;
-    padding: 16px 24px;
-    overflow-y: auto;
+    transition: background-color 0.2s;
     display: flex;
     flex-direction: column;
+    gap: 10px;
 }
 
-/* Header & Stats */
-.drive-header h2 {
-    font-size: 24px;
-    font-weight: 400;
-    color: var(--text-primary);
-    margin-bottom: 20px;
+.suggested-card:hover {
+    background-color: #3c4043 !important;
 }
 
-/* Suggested Chips (Stats) */
-.stats-row {
+.card-preview {
+    height: 100px;
+    /* Placeholder for preview */
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
     display: flex;
-    gap: 12px;
-    margin-bottom: 24px;
-    flex-wrap: wrap;
-}
-
-.stat-chip {
-    background-color: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 12px 16px;
-    min-width: 140px;
-    display: flex;
-    flex-direction: column;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.stat-chip:hover {
-    background-color: var(--hover-bg);
-}
-
-.stat-chip i {
-    font-size: 20px;
-    margin-bottom: 8px;
-}
-
-.stat-value {
-    font-size: 20px;
-    font-weight: 500;
-    color: var(--text-primary);
-}
-
-.stat-label {
-    font-size: 12px;
-    color: var(--text-secondary);
-}
-
-/* Toolbar */
-.drive-toolbar {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
-    background-color: var(--surface-color);
-    padding: 8px 16px;
-    border-radius: 24px;
-    margin-bottom: 16px;
+    justify-content: center;
+    font-size: 32px;
+    color: var(--dashboard-text-sec);
 }
 
-.search-input {
-    background: transparent;
-    border: none;
-    color: var(--text-primary);
-    width: 300px;
-    outline: none;
-    margin-left: 8px;
-}
-
-.filter-select {
-    background-color: transparent;
-    color: var(--text-primary);
-    border: none;
-    font-size: 14px;
-    cursor: pointer;
-    outline: none;
-}
-
-.filter-select option {
-    background-color: var(--surface-color);
-    color: var(--text-primary);
-}
-
-/* File List (Table) */
-.drive-table-header {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr 100px 120px 80px;
+/* File List Headers */
+.file-list-header {
+    display: flex;
     padding: 0 16px 12px 16px;
-    border-bottom: 1px solid var(--border-color);
-    color: var(--text-secondary);
+    border-bottom: 1px solid var(--dashboard-border);
+    color: var(--dashboard-text-sec);
     font-size: 14px;
     font-weight: 500;
 }
 
-.drive-file-list {
+/* File Rows */
+.file-row {
     display: flex;
-    flex-direction: column;
-}
-
-.drive-row {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr 100px 120px 80px;
+    align-items: center;
     padding: 10px 16px;
-    border-bottom: 1px solid rgba(95, 99, 104, 0.2);
-    color: var(--text-primary);
-    font-size: 14px;
-    align-items: center;
+    border-bottom: 1px solid var(--dashboard-border);
     cursor: pointer;
-    border-radius: 4px;
     transition: background-color 0.1s;
+    color: var(--dashboard-text);
+    font-size: 14px;
 }
 
-.drive-row:hover {
-    background-color: var(--hover-bg);
+.file-row:hover {
+    background-color: rgba(168, 199, 250, 0.08) !important;
 }
 
-.drive-row:hover .row-actions {
-    opacity: 1;
-}
-
-.file-name-cell {
+.col-name {
+    flex: 6;
     display: flex;
     align-items: center;
-    gap: 12px;
-    white-space: nowrap;
+    gap: 16px;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
 }
 
-.row-actions {
-    opacity: 0;
-    display: flex;
-    gap: 8px;
-    justify-content: flex-end;
-    transition: opacity 0.2s;
+.col-owner {
+    flex: 2;
+    color: var(--dashboard-text-sec);
 }
 
-.btn-icon-action {
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
+.col-date {
+    flex: 2;
+    color: var(--dashboard-text-sec);
+}
+
+.col-size {
+    flex: 1;
+    color: var(--dashboard-text-sec);
+    text-align: right;
+    padding-right: 16px;
+}
+
+.col-action {
+    width: 40px;
     display: flex;
-    align-items: center;
     justify-content: center;
-    transition: background 0.2s;
-}
-
-.btn-icon-action:hover {
-    background-color: rgba(232, 234, 237, 0.1);
-    color: var(--text-primary);
-}
-
-/* Empty State */
-.empty-drive {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 300px;
-    color: var(--text-secondary);
-}
-
-/* Modal Tweaks for Dashboard */
-.modal-content {
-    background-color: var(--surface-color);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-}
-.modal-header, .modal-footer {
-    border-color: var(--border-color);
-}
-.dropdown-menu-dark {
-    background-color: var(--surface-color);
-    border-color: var(--border-color);
 }

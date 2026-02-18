@@ -56,7 +56,12 @@ def calculate_zero_trust_risk_score(user, action, document=None, ip_address=None
     )
     
     base_score = overall_score
-    print(f"[RISK ENGINE] Base weighted score: {base_score} (identity:{identity_score}, location:{location_score}, sensitivity:{sensitivity_score}, action:{action_score})")
+    print(f"\n[RISK ENGINE DEBUG] User: {user.username}, Action: {action}")
+    print(f"  Identity Score: {identity_score} (Factors: {identity_factors})")
+    print(f"  Location Score: {location_score} (Factors: {location_factors})")
+    print(f"  Sensitivity Score: {sensitivity_score} (Factors: {sensitivity_factors})")
+    print(f"  Action Score: {action_score} (Factors: {action_factors})")
+    print(f"  Base Weighted Score: {base_score}")
     
     # Check for recent high-risk events (last 2 minutes) - add AFTER weighted calculation
     # This ensures inherited risk is not diluted by weighting
@@ -76,9 +81,9 @@ def calculate_zero_trust_risk_score(user, action, document=None, ip_address=None
         else:
             inherited_risk = int(recent_high_risk.risk_score * 0.6)
         
-        print(f"[RISK ENGINE] Found recent high-risk event: score={recent_high_risk.risk_score}, inheriting {inherited_risk} points")
+        print(f"  [INHERITANCE] Found recent high-risk event: score={recent_high_risk.risk_score}")
+        print(f"  [INHERITANCE] Inheriting {inherited_risk} points")
         overall_score += inherited_risk
-        print(f"[RISK ENGINE] Score after inheritance: {base_score} + {inherited_risk} = {overall_score}")
         
         # Parse risk factors from the recent event
         try:
@@ -95,6 +100,7 @@ def calculate_zero_trust_risk_score(user, action, document=None, ip_address=None
     
     # Cap at 100
     overall_score = min(100, max(0, overall_score))
+    print(f"  FINAL SCORE: {overall_score}\n")
     
     # Combine all risk factors
     risk_factors = identity_factors + location_factors + sensitivity_factors + action_factors

@@ -9,8 +9,5 @@ def register_blueprints(app):
     app.register_blueprint(doc_bp, url_prefix='/documents')
     app.register_blueprint(admin_bp)
     
-    # ===== SESSION VERIFICATION =====
-    from .session_routes import session_bp
-    app.register_blueprint(session_bp, url_prefix='/session')
-    
+
     print("✅ Blueprints: Auth, Documents, SESSION")  

@@ -2,8 +2,9 @@ from flask import Flask, redirect, url_for, session
 from config import Config
 from models import db, User
 from flask_login import LoginManager
+from flask_migrate import Migrate # NEW
 from routes import register_blueprints
-from extentions import limiter, oauth
+from extensions import limiter, oauth
 
 def create_app():
     # 1. Initialize Flask
@@ -14,6 +15,7 @@ def create_app():
     
     # 3. Initialize Extensions
     db.init_app(app)
+    migrate = Migrate(app, db) # NEW: Init Migrate
     limiter.init_app(app) # Initialize Rate Limiter
     oauth.init_app(app) # NEW: Init OAuth
     

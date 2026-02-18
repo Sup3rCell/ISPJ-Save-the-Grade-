@@ -67,10 +67,10 @@
                 <label class="form-label">Severity</label>
                 <select name="severity" class="form-select">
                     <option value="">All Severities</option>
-                    <option value="critical" {% if severity_filter == 'critical' %}selected{% endif %}>Critical</option>
-                    <option value="high" {% if severity_filter == 'high' %}selected{% endif %}>High</option>
-                    <option value="medium" {% if severity_filter == 'medium' %}selected{% endif %}>Medium</option>
-                    <option value="low" {% if severity_filter == 'low' %}selected{% endif %}>Low</option>
+                    <option value="critical" {% if severity_filter=='critical' %}selected{% endif %}>Critical</option>
+                    <option value="high" {% if severity_filter=='high' %}selected{% endif %}>High</option>
+                    <option value="medium" {% if severity_filter=='medium' %}selected{% endif %}>Medium</option>
+                    <option value="low" {% if severity_filter=='low' %}selected{% endif %}>Low</option>
                 </select>
             </div>
             <div class="col-md-12">
@@ -93,7 +93,7 @@
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover mb-0">
-                <thead class="table-light">
+                <thead>
                     <tr>
                         <th>Timestamp</th>
                         <th>Severity</th>
@@ -106,19 +106,20 @@
                 </thead>
                 <tbody>
                     {% for alert in alerts.items %}
-                    <tr class="{% if alert.severity == 'critical' %}table-danger{% elif alert.severity == 'high' %}table-warning{% endif %}">
+                    <tr
+                        class="{% if alert.severity == 'critical' %}table-danger{% elif alert.severity == 'high' %}table-warning{% endif %}">
                         <td>
                             <small class="text-muted">{{ alert.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small>
                         </td>
                         <td>
                             {% if alert.severity == 'critical' %}
-                                <span class="badge bg-danger">{{ alert.severity | upper }}</span>
+                            <span class="badge bg-danger">{{ alert.severity | upper }}</span>
                             {% elif alert.severity == 'high' %}
-                                <span class="badge bg-warning">{{ alert.severity | upper }}</span>
+                            <span class="badge bg-warning">{{ alert.severity | upper }}</span>
                             {% elif alert.severity == 'medium' %}
-                                <span class="badge bg-info">{{ alert.severity | upper }}</span>
+                            <span class="badge bg-info">{{ alert.severity | upper }}</span>
                             {% else %}
-                                <span class="badge bg-success">{{ alert.severity | upper }}</span>
+                            <span class="badge bg-success">{{ alert.severity | upper }}</span>
                             {% endif %}
                         </td>
                         <td>
@@ -130,24 +131,25 @@
                         </td>
                         <td>
                             {% if alert.user %}
-                                <strong>{{ alert.user.username if alert.user else 'Unknown' }}</strong>
-                                <br>
-                                <small class="text-muted">{{ alert.user.email if alert.user else 'N/A' }}</small>
+                            <strong>{{ alert.user.username if alert.user else 'Unknown' }}</strong>
+                            <br>
+                            <small class="text-muted">{{ alert.user.email if alert.user else 'N/A' }}</small>
                             {% else %}
-                                <em class="text-muted">Unknown</em>
+                            <em class="text-muted">Unknown</em>
                             {% endif %}
                         </td>
                         <td>
                             {% if alert.status == 'resolved' %}
-                                <span class="badge bg-success">Resolved</span>
+                            <span class="badge bg-success">Resolved</span>
                             {% elif alert.status == 'acknowledged' %}
-                                <span class="badge bg-info">Acknowledged</span>
+                            <span class="badge bg-info">Acknowledged</span>
                             {% else %}
-                                <span class="badge bg-danger">Open</span>
+                            <span class="badge bg-danger">Open</span>
                             {% endif %}
                         </td>
                         <td>
-                            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#details-{{ alert.id }}">
+                            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse"
+                                data-bs-target="#details-{{ alert.id }}">
                                 <i class="fas fa-chevron-down"></i>
                             </button>
                         </td>
@@ -181,7 +183,8 @@
                             <div class="row mt-3">
                                 <div class="col-md-12">
                                     <form method="post" style="display:inline;">
-                                        <button type="button" class="btn btn-sm btn-success" onclick="markAsResolved('{{ alert.id }}')">
+                                        <button type="button" class="btn btn-sm btn-success"
+                                            onclick="markAsResolved('{{ alert.id }}')">
                                             <i class="fas fa-check me-1"></i>Mark Resolved
                                         </button>
                                     </form>
@@ -207,130 +210,69 @@
     <ul class="pagination justify-content-center">
         {% if alerts.has_prev %}
         <li class="page-item">
-            <a class="page-link" href="{{ url_for('admin.honeytoken_alerts', page=1, severity=severity_filter) }}">First</a>
+            <a class="page-link"
+                href="{{ url_for('admin.honeytoken_alerts', page=1, severity=severity_filter) }}">First</a>
         </li>
         <li class="page-item">
-            <a class="page-link" href="{{ url_for('admin.honeytoken_alerts', page=alerts.prev_num, severity=severity_filter) }}">Previous</a>
+            <a class="page-link"
+                href="{{ url_for('admin.honeytoken_alerts', page=alerts.prev_num, severity=severity_filter) }}">Previous</a>
         </li>
         {% endif %}
 
         {% for page_num in alerts.iter_pages() %}
-            {% if page_num %}
-                {% if page_num == alerts.page %}
-                <li class="page-item active">
-                    <span class="page-link">{{ page_num }}</span>
-                </li>
-                {% else %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('admin.honeytoken_alerts', page=page_num, severity=severity_filter) }}">{{ page_num }}</a>
-                </li>
-                {% endif %}
-            {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">...</span>
-                </li>
-            {% endif %}
+        {% if page_num %}
+        {% if page_num == alerts.page %}
+        <li class="page-item active">
+            <span class="page-link">{{ page_num }}</span>
+        </li>
+        {% else %}
+        <li class="page-item">
+            <a class="page-link"
+                href="{{ url_for('admin.honeytoken_alerts', page=page_num, severity=severity_filter) }}">{{ page_num
+                }}</a>
+        </li>
+        {% endif %}
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link">...</span>
+        </li>
+        {% endif %}
         {% endfor %}
 
         {% if alerts.has_next %}
         <li class="page-item">
-            <a class="page-link" href="{{ url_for('admin.honeytoken_alerts', page=alerts.next_num, severity=severity_filter) }}">Next</a>
+            <a class="page-link"
+                href="{{ url_for('admin.honeytoken_alerts', page=alerts.next_num, severity=severity_filter) }}">Next</a>
         </li>
         <li class="page-item">
-            <a class="page-link" href="{{ url_for('admin.honeytoken_alerts', page=alerts.pages, severity=severity_filter) }}">Last</a>
+            <a class="page-link"
+                href="{{ url_for('admin.honeytoken_alerts', page=alerts.pages, severity=severity_filter) }}">Last</a>
         </li>
         {% endif %}
     </ul>
 </nav>
 
 <style>
-.summary-card {
-    display: flex;
-    align-items: center;
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    margin-bottom: 0;
-}
+    .table {
+        font-size: 13px;
+    }
 
-.summary-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #ecf0f1;
-    color: #2c3e50;
-    font-size: 20px;
-    margin-right: 15px;
-}
+    .table td {
+        vertical-align: middle;
+    }
 
-.summary-icon.critical {
-    background: rgba(231, 76, 60, 0.1);
-    color: #e74c3c;
-}
-
-.summary-icon.high {
-    background: rgba(243, 156, 18, 0.1);
-    color: #f39c12;
-}
-
-.summary-icon.recent {
-    background: rgba(52, 152, 219, 0.1);
-    color: #3498db;
-}
-
-.summary-content {
-    flex: 1;
-}
-
-.summary-value {
-    font-size: 24px;
-    font-weight: bold;
-}
-
-.summary-label {
-    font-size: 12px;
-    color: #95a5a6;
-    text-transform: uppercase;
-    margin-top: 5px;
-}
-
-.table {
-    font-size: 13px;
-}
-
-.table td {
-    vertical-align: middle;
-}
-
-pre {
-    background: #f8f9fa;
-    padding: 10px;
-    border-radius: 4px;
-    overflow-x: auto;
-}
-
-code {
-    padding: 4px 8px;
-    background: #f8f9fa;
-    border-radius: 3px;
-}
-
-.badge {
-    padding: 6px 10px;
-    font-size: 11px;
-}
+    .badge {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
 </style>
 
 <script>
-function markAsResolved(alertId) {
-    if (confirm('Mark this alert as resolved?')) {
-        // TODO: Implement API endpoint to update alert status
-        alert('API endpoint not yet implemented');
+    function markAsResolved(alertId) {
+        if (confirm('Mark this alert as resolved?')) {
+            // TODO: Implement API endpoint to update alert status
+            alert('API endpoint not yet implemented');
+        }
     }
-}
 </script>
 {% endblock %}

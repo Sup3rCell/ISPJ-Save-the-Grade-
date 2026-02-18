@@ -1,0 +1,73 @@
+{% extends "base_dashboard.html" %}
+
+{% block dashboard_content %}
+<div class="drive-header">
+    <h2>Trash</h2>
+    <p class="text-secondary">Files in trash are deleted forever after 30 days (Policy not yet enforced).</p>
+</div>
+
+<!-- Table Header -->
+<div class="file-list-header">
+    <div class="col-icon">Type</div>
+    <div class="col-name">Name</div>
+    <div class="col-owner">Owner</div>
+    <div class="col-size">Size</div>
+    <div class="col-date">Deleted Date</div>
+    <div class="col-classification">Classification</div>
+    <div class="col-action"></div>
+</div>
+
+<!-- File Rows -->
+{% for doc in documents %}
+<div class="file-row">
+    <div class="col-icon">
+        <i class="fas fa-file-alt text-secondary"></i>
+    </div>
+
+    <div class="col-name text-decoration-line-through text-muted">
+        {{ doc.name }}
+    </div>
+
+    <div class="col-owner">{{ doc.owner }}</div>
+    <div class="col-size">{{ doc.size }}</div>
+    <div class="col-date">{{ doc.date }}</div>
+    <div class="col-classification">
+        <span class="badge badge-{{ doc.classification|lower }}">{{ doc.classification }}</span>
+    </div>
+
+    <div class="col-action">
+        <div class="dropdown">
+            <button class="btn btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-ellipsis-v"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+                <li>
+                    <form action="{{ url_for('doc.restore_document', doc_id=doc.id) }}" method="POST">
+                        <button type="submit" class="dropdown-item"><i class="fas fa-trash-restore me-2"></i>
+                            Restore</button>
+                    </form>
+                </li>
+                <li>
+                    <hr class="dropdown-divider">
+                </li>
+                <li>
+                    <form action="{{ url_for('doc.delete_forever', doc_id=doc.id) }}" method="POST"
+                        onsubmit="return confirm('Permanently delete this file? This cannot be undone.');">
+                        <button type="submit" class="dropdown-item text-danger"><i class="fas fa-times-circle me-2"></i>
+                            Delete Forever</button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% if not documents %}
+<div class="text-center mt-5 text-secondary">
+    <i class="fas fa-trash-alt fa-3x mb-3"></i>
+    <p>Trash is empty</p>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -110,7 +110,7 @@ def google_callback():
     )
     
     flash("Successfully logged in via Google!")
-    return redirect(url_for('documents.dashboard'))
+    return redirect(url_for('doc.dashboard'))
 
 # --- STANDARD LOGIN ROUTES ---
 
@@ -126,7 +126,6 @@ def login():
         if not user or not check_password_hash(user.password_hash, password):
             if user:
                 # Update persistent risk score
-                from modules.risk_manager import RiskManager
                 new_score = RiskManager.update_risk(user.id, 10, "Failed Login Attempt")
                 print(f"[AUTH] Increased risk for {user.username} to {new_score}")
                 
@@ -179,7 +178,7 @@ def login():
             risk_factors=risk_factors,
             action_details={'components': components, 'auth_method': 'password'}
         )
-        return redirect(url_for('documents.dashboard'))
+        return redirect(url_for('doc.dashboard'))
 
     return render_template('auth/login.html')
 
@@ -245,7 +244,7 @@ def magic_login_verify(token):
     )
     
     flash("Logged in via Magic Link!")
-    return redirect(url_for('documents.dashboard'))
+    return redirect(url_for('doc.dashboard'))
 
 @auth_bp.route('/register-org', methods=['GET', 'POST'])
 def register_org():
@@ -302,7 +301,7 @@ def register_org():
 def create_user():
     if current_user.role != 'admin':
         flash("Unauthorized: Only Admins can create users.")
-        return redirect(url_for('documents.dashboard'))
+        return redirect(url_for('doc.dashboard'))
     
     if request.method == 'POST':
         username = request.form.get('username')
@@ -335,7 +334,7 @@ def create_user():
         
         db.session.commit()
         flash(f'User {username} created successfully!')
-        return redirect(url_for('documents.dashboard'))
+        return redirect(url_for('doc.dashboard'))
     
     return render_template('auth/create_user_internal.html')
 
@@ -356,7 +355,7 @@ def setup_2fa():
             db.session.commit()
             session['last_mfa_time'] = datetime.utcnow().timestamp()
             flash("2FA Enabled Successfully!")
-            return redirect(url_for('documents.dashboard'))
+            return redirect(url_for('doc.dashboard'))
         else:
             flash("Invalid Code.")
 
@@ -448,7 +447,7 @@ def verify_2fa():
                 risk_factors=risk_factors,
                 action_details={'components': risk_components, 'auth_method': auth_method}
             )
-            return redirect(url_for('documents.dashboard'))
+            return redirect(url_for('doc.dashboard'))
         else:
             flash('Invalid 2FA Code')
             

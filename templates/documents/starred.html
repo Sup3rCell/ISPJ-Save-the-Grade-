@@ -1,15 +1,14 @@
 {% extends "base_dashboard.html" %}
 
 {% block dashboard_content %}
-<!-- Welcome Header -->
+<!-- Header -->
 <div class="drive-header">
-    <h2>Welcome, {{ current_user.username }}!</h2>
+    <h2>Starred Files</h2>
 </div>
 
 <!-- Section Header -->
-<!-- Section Header -->
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h5 class="section-title">Suggested files</h5>
+    <h5 class="section-title">All starred items</h5>
     <!-- Risk Score Display -->
     <span
         class="badge {% if current_risk_score >= 70 %}bg-danger text-white{% elif current_risk_score >= 40 %}bg-warning text-dark{% else %}bg-success text-white{% endif %}"
@@ -17,26 +16,6 @@
         Risk Score: {{ current_risk_score }}%
     </span>
 </div>
-
-<!-- Suggested Files Row -->
-{% if documents %}
-<div class="suggested-row mb-4" style="display: flex; gap: 16px; overflow-x: auto; padding-bottom: 8px;">
-    {% for doc in documents[:4] %}
-    <div class="suggested-card" onclick="window.location.href='{{ url_for('doc.view_document', doc_id=doc.id) }}';">
-        <div class="card-preview">
-            {% if 'pdf' in doc.name %}<i class="fas fa-file-pdf text-danger"></i>
-            {% elif 'xlsx' in doc.name %}<i class="fas fa-file-excel text-success"></i>
-            {% else %}<i class="fas fa-file-alt text-primary"></i>{% endif %}
-        </div>
-        <div class="card-name text-truncate">{{ doc.name }}</div>
-        <div class="card-meta d-flex justify-content-between">
-            <small>{{ doc.owner }}</small>
-            <small>{{ doc.date }}</small>
-        </div>
-    </div>
-    {% endfor %}
-</div>
-{% endif %}
 
 <!-- Table Header -->
 <div class="file-list-header">
@@ -103,10 +82,9 @@
 <!-- Empty State -->
 {% if not documents %}
 <div class="text-center mt-5 text-secondary">
-    <i class="fas fa-folder-open fa-3x mb-3"></i>
-    <p>No files found.</p>
+    <i class="fas fa-star fa-3x mb-3"></i>
+    <p>No starred files found.</p>
 </div>
 {% endif %}
-
 
 {% endblock %}

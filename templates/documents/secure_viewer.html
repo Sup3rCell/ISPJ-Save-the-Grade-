@@ -1,101 +1,158 @@
-{% extends "base.html" %}
+{% extends "base_dashboard.html" %}
 
 {% block content %}
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        * { 
-            -webkit-user-select: none !important; 
-            -moz-user-select: none !important; 
-            -ms-user-select: none !important; 
-            user-select: none !important; 
+<style>
+    .secure-container {
+        position: relative;
+        height: calc(100vh - 80px);
+        /* Adjust based on navbar height */
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .watermark-layer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 10;
+        overflow: hidden;
+    }
+
+    .watermark-text {
+        position: absolute;
+        color: rgba(200, 200, 200, 0.3);
+        font-weight: bold;
+        transform: rotate(-30deg);
+        user-select: none;
+        pointer-events: none;
+    }
+
+    .content-layer {
+        position: relative;
+        z-index: 1;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        padding: 20px;
+        overflow-y: auto;
+    }
+
+    .pdf-frame {
+        flex-grow: 1;
+        width: 100%;
+        border: 1px solid #444;
+        border-radius: 4px;
+        margin-top: 10px;
+    }
+
+    /* Print Protection */
+    @media print {
+        body * {
+            visibility: hidden !important;
         }
-        body::selection { background: transparent !important; }
-        body::-moz-selection { background: transparent !important; }
-        
-        @media print {
-            * { visibility: hidden !important; }
-            .watermark-only { visibility: visible !important; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 999999; background: white; }
-            .content { display: none !important; }
+
+        .watermark-layer {
+            visibility: visible !important;
+            background: white;
+            z-index: 9999;
         }
-    </style>
-</head>
-<body>
-    <div style="position: relative; height: 80vh; padding: 20px;">
-        <!-- FORENSIC WATERMARKS -->
-        <div class="watermark-only" style="font-size: 48px; color: #ccc; transform: rotate(-20deg); position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;">
+
+        .watermark-layer::after {
+            content: "DO NOT PRINT";
+            font-size: 5em;
+            color: red;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+    }
+</style>
+
+<div class="secure-container">
+    <!-- FORENSIC WATERMARKS -->
+    <div class="watermark-layer">
+        <div class="watermark-text"
+            style="top: 50%; left: 50%; font-size: 48px; transform: translate(-50%, -50%) rotate(-20deg);">
             {{ watermark_text }}
         </div>
-        <div class="watermark-only" style="font-size: 72px; color: #ddd; transform: rotate(-45deg); position: absolute; top: 20%; left: 10%; pointer-events: none;">
+        <div class="watermark-text" style="top: 20%; left: 10%; font-size: 72px; color: rgba(220, 220, 220, 0.15);">
             SECURE DOCUMENT
-        </div>
-        
-        <!-- PROTECTED CONTENT -->
-        <div class="content" style="font-family: monospace; font-size: 16px; line-height: 1.6; pointer-events: none;">
-            <h1 style="color: #333;">{{ document.name }}</h1>
-            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #007bff;">
-                <strong>Classification:</strong> {{ document.classification }} | 
-                <strong>Risk Score:</strong> {{ risk_score }}%
-            </div>
-            <div style="margin-top: 20px; white-space: pre-wrap;">{{ document.content }}</div>
         </div>
     </div>
 
-    <script>
+    <!-- CONTENT -->
+    <div class="content-layer">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h4 mb-0 text-light">{{ document.name }}</h2>
+            <div class="badge bg-primary">
+                Risk Score: <span id="risk-display">{{ risk_score }}%</span>
+            </div>
+        </div>
+
+        <div class="card bg-dark text-light border-secondary mb-3">
+            <div class="card-body py-2 px-3">
+                <small class="text-muted">Classification:</small>
+                <span class="text-info">{{ document.classification }}</span>
+            </div>
+        </div>
+
+        {% if document.is_pdf %}
+        <!-- Interactive PDF Iframe -->
+        <iframe src="data:application/pdf;base64,{{ document.pdf_data }}" class="pdf-frame">
+            This browser does not support PDFs.
+        </iframe>
+        {% else %}
+        <!-- Scrollable Text Content -->
+        <div class="bg-light text-dark p-3 rounded"
+            style="flex-grow: 1; overflow-y: auto; white-space: pre-wrap; font-family: monospace;">
+            {{ document.content }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
     // ABSOLUTE NUCLEAR DRM
-    document.onselectstart = () => false;
-    document.oncontextmenu = () => false;
-    
-    // Block ALL keyboard input
-    document.onkeydown = (e) => {
-        const blocked = [65,80,83,67,86,85,73,74]; // A,P,S,C,V,U,I,J
-        if (e.ctrlKey && blocked.includes(e.keyCode)) {
-            e.preventDefault();
-            return false;
-        }
-        if (e.keyCode >= 112 && e.keyCode <= 123) { // F1-F12
-            e.preventDefault();
-            return false;
-        }
-    };
-    
-    // Kill copy/paste/drag
-    ['copy','cut','paste','dragstart'].forEach(e=>document['on'+e]=()=>false);
-    
-    // DevTools killer
-    setInterval(()=>{
-        if(window.outerHeight-window.innerHeight>100) document.body.innerHTML='<h1>🔒 ACCESS TERMINATED</h1>';
-    },1000);
-    </script>
+    document.addEventListener('contextmenu', event => event.preventDefault());
 
-    <script>
+    // Block Key Combos
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && ['a', 'p', 's', 'c', 'v', 'u', 'i', 'j'].includes(e.key.toLowerCase())) {
+            e.preventDefault();
+        }
+        if (e.key.startsWith('F') && e.key !== 'F5') { // Block function keys except F5
+            e.preventDefault();
+        }
+    });
+
+    // Session Verification
     let sessionTimer;
-
     function checkSession() {
-        fetch('/session/verify_session', {method: 'POST'})
+        fetch("{{ url_for('doc.verify_session') }}", { method: 'POST' })
             .then(res => res.json())
             .then(data => {
-                document.getElementById('risk-display').textContent = data.risk_score;
+                const display = document.getElementById('risk-display');
+                if (display) display.textContent = data.risk_score + "%";
+
                 if (data.action === 'terminate') {
-                    alert('Session terminated: High risk detected.');
-                    window.location = '/logout';
+                    window.location = '/auth/logout';
                 } else if (data.action === 'restrict') {
-                    document.querySelector('.content').style.filter = 'blur(3px)';
+                    document.querySelector('.content-layer').style.filter = 'blur(5px)';
+                } else {
+                    document.querySelector('.content-layer').style.filter = 'none';
                 }
-            });
+            })
+            .catch(err => console.error("Session check failed"));
     }
 
-    // Changed: 30sec (30000ms) instead of 2min
-    sessionTimer = setInterval(checkSession, 30000);
-    document.addEventListener('visibilitychange', checkSession);
-    document.addEventListener('blur', checkSession);
-
-    window.addEventListener('beforeunload', () => clearInterval(sessionTimer));
+    sessionTimer = setInterval(checkSession, 30000); // 30s check
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') checkSession();
+    });
 </script>
-<!-- Add this div after classification -->
-<div id="risk-display" style="color: red; font-weight: bold;">{{ risk_score }}%</div>
-
-</body>
-</html>
 {% endblock %}

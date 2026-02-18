@@ -1,0 +1,130 @@
+{% extends "base_dashboard.html" %}
+
+{% block dashboard_content %}
+<!-- Header -->
+<div class="drive-header">
+    <h2>Shared with me</h2>
+</div>
+
+<!-- Section Header -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="section-title">Files shared by others</h5>
+
+    {% if pending_count > 0 %}
+    <span class="badge bg-warning text-dark">
+        <i class="fas fa-exclamation-circle me-1"></i> {{ pending_count }} Pending Invitation{% if pending_count > 1
+        %}s{% endif %}
+    </span>
+    {% endif %}
+</div>
+
+<!-- Table Header -->
+<div class="file-list-header">
+    <div class="col-name" style="flex: 3;">Name</div>
+    <div class="col-owner" style="flex: 1;">Shared By</div>
+    <div class="col-date" style="flex: 1;">Date Shared</div>
+    <div class="col-status" style="flex: 1;">Status</div>
+    <div class="col-action" style="width: 50px;"></div>
+</div>
+
+<!-- File Rows (Loop) -->
+{% for share in shares %}
+<div class="file-row" style="cursor: default;">
+    <!-- Name -->
+    <div class="col-name" style="flex: 3;">
+        <div class="file-icon">
+            {% if 'pdf' in share.name %}<i class="fas fa-file-pdf text-danger"></i>
+            {% elif 'xlsx' in share.name %}<i class="fas fa-file-excel text-success"></i>
+            {% else %}<i class="fas fa-file-alt text-primary"></i>{% endif %}
+        </div>
+
+        {% if share.status == 'accepted' %}
+        <a href="{{ url_for('doc.view_shared_p2p', doc_id=share.doc_id) }}"
+            class="text-decoration-none text-light fw-bold">
+            {{ share.name }}
+        </a>
+        <span class="badge badge-{{ share.classification|lower }} rounded-pill ms-2"
+            style="font-size: 10px; opacity: 0.8;">{{ share.classification }}</span>
+        {% else %}
+        <span class="text-muted">{{ share.name }}</span>
+        <span class="badge bg-secondary rounded-pill ms-2" style="font-size: 10px;">Locked</span>
+        {% endif %}
+    </div>
+
+    <!-- Owner -->
+    <div class="col-owner" style="flex: 1;">
+        <div class="d-flex align-items-center">
+            <div class="rounded-circle bg-primary text-white d-flex justify-content-center align-items-center me-2"
+                style="width: 24px; height: 24px; font-size: 10px;">
+                {{ share.owner[:2].upper() }}
+            </div>
+            {{ share.owner }}
+        </div>
+    </div>
+
+    <!-- Date -->
+    <div class="col-date" style="flex: 1;">{{ share.date }}</div>
+
+    <!-- Status & Actions -->
+    <div class="col-status" style="flex: 1;">
+        {% if share.status == 'pending' %}
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-sm btn-success" onclick="respondShare({{ share.share_id }}, 'accept')">
+                <i class="fas fa-check"></i> Accept
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger"
+                onclick="respondShare({{ share.share_id }}, 'reject')">
+                <i class="fas fa-times"></i> Reject
+            </button>
+        </div>
+        {% else %}
+        <span class="badge bg-success"><i class="fas fa-check me-1"></i> Accepted</span>
+        {% endif %}
+    </div>
+
+    <!-- Dropdown (Optional) -->
+    <div class="col-action" style="width: 50px;">
+        {% if share.status == 'accepted' %}
+        <div class="dropdown">
+            <button class="btn btn-icon rounded-circle p-0" type="button" data-bs-toggle="dropdown"
+                style="width: 32px; height: 32px; color: var(--dashboard-text-sec);">
+                <i class="fas fa-ellipsis-v"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+                <li><a class="dropdown-item" href="{{ url_for('doc.view_shared_p2p', doc_id=share.doc_id) }}"><i
+                            class="fas fa-eye me-2"></i> View</a></li>
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+
+<!-- Empty State -->
+{% if not shares %}
+<div class="text-center mt-5 text-secondary">
+    <i class="fas fa-user-friends fa-3x mb-3"></i>
+    <p>No files shared with you yet.</p>
+</div>
+{% endif %}
+
+<script>
+    function respondShare(shareId, action) {
+        if (!confirm(`Are you sure you want to ${action} this invitation?`)) return;
+
+        fetch(`/documents/share/respond/${shareId}/${action}`, { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    location.reload();
+                } else {
+                    alert(data.message || 'Error processing request');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Network error');
+            });
+    }
+</script>
+{% endblock %}
