@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: zero-trust-gateway
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn "app:create_app()"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: zero-trust-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PYTHON_VERSION
+        value: 3.10.0
+
+databases:
+  - name: zero-trust-db
+    databaseName: ztg_db
+    user: ztg_user
