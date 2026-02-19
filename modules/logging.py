@@ -4,6 +4,7 @@ from datetime import datetime
 import json
 import requests
 import ipaddress
+from modules.risk_manager import RiskManager
 
 def get_ip_location(ip_address):
     """
@@ -66,13 +67,28 @@ def log_attempt(
     else:
         ip_address = request.remote_addr
 
+    # Snapshot the CURRENT Risk Score from RiskManager if user is known
+    captured_risk = risk
+    if user_id:
+        try:
+            # We want the persistent risk score at this moment
+            risk_data = RiskManager.get_current_risk(user_id)
+            if risk_data:
+                # If 'risk' arg was provided (e.g. event specific risk), 
+                # we might want to log that OR the user total.
+                # User request: "risk score column... needs to retrieve the risk score from the riskmanager"
+                # implying the snapshot of the user's state.
+                captured_risk = risk_data.get('score', 0)
+        except Exception as e:
+            print(f"Logging Risk Fetch Error: {e}")
+
     log = AccessLog(
         user_id=user_id,
         document_id=document_id,  # New: Added optional document ID
         action=action,
         ip_address=ip_address,
         device_info=request.headers.get('User-Agent'),
-        risk_score=risk,
+        risk_score=captured_risk,
         risk_factors=risk_factors_payload,
         action_details=action_details_payload,
         outcome=outcome,

@@ -53,15 +53,25 @@ class DocumentClassifier:
         detected_level = self.INTERNAL # Default baseline
         reasons = []
 
-        # 1. Check Restricted Keywords/Patterns
-        if self._check_matches(content, content_lower, self.RESTRICTED):
+        # 1. Check Restricted Keywords/Patterns (Zero Tolerance)
+        # Any single match triggers Restricted
+        r_keywords, r_patterns, r_details = self._count_matches(content, content_lower, self.RESTRICTED)
+        if r_keywords + r_patterns > 0:
             detected_level = self.RESTRICTED
-            reasons.append("Contains Restricted keywords or patterns (e.g. NRIC, 'Strictly Private')")
+            reasons.append(f"Detected Restricted content: {', '.join(r_details)}")
         
-        # 2. Check Confidential (if not already Restricted)
-        elif self._check_matches(content, content_lower, self.CONFIDENTIAL):
-            detected_level = self.CONFIDENTIAL
-            reasons.append("Contains Confidential keywords or PII (e.g. Phone, Email)")
+        # 2. Check Confidential (Frequency Based)
+        # Keywords are strong indicators (Threshold 1)
+        # PII Patterns (Emails, Phone) need frequency (Threshold 3)
+        else:
+            c_keywords, c_patterns, c_details = self._count_matches(content, content_lower, self.CONFIDENTIAL)
+            
+            if c_keywords >= 1:
+                detected_level = self.CONFIDENTIAL
+                reasons.append(f"Detected Confidential keywords: {', '.join(c_details)}")
+            elif c_patterns >= 3:
+                detected_level = self.CONFIDENTIAL
+                reasons.append(f"Detected high frequency of PII ({c_patterns} matches): {', '.join(c_details)}")
 
         # 3. Compare with Manual Selection
         final_level = self._resolve_level(manual_selection, detected_level)
@@ -75,17 +85,31 @@ class DocumentClassifier:
             'reasons': reasons
         }
 
-    def _check_matches(self, content, content_lower, level):
+    def _count_matches(self, content, content_lower, level):
+        """
+        Counts occurrences of keywords and regex patterns for a given level.
+        Returns (keyword_count, pattern_count, details_list)
+        """
+        keyword_count = 0
+        pattern_count = 0
+        details = []
+        
         # Check Keywords
         for kw in self.keywords.get(level, []):
-            if kw in content_lower:
-                return True
+            count = content_lower.count(kw)
+            if count > 0:
+                keyword_count += count
+                details.append(f"'{kw}' ({count})")
         
         # Check Regex
         for pattern in self.regex_patterns.get(level, []):
-            if re.search(pattern, content):
-                return True
-        return False
+            matches = re.findall(pattern, content)
+            count = len(matches)
+            if count > 0:
+                pattern_count += count
+                details.append(f"Pattern Matches ({count})")
+                
+        return keyword_count, pattern_count, details
 
     def _resolve_level(self, manual, detected):
         """Returns the higher classification level."""
