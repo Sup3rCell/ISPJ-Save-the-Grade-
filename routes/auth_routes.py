@@ -60,6 +60,11 @@ def google_callback():
         log_attempt(None, 'LOGIN_SSO_FAILED_NO_ACCOUNT', 100, 'DENIED', email_attempt=email)
         flash("No account found. Please ask your administrator to create your account.")
         return redirect(url_for('auth.login'))
+
+    if not user.is_active:
+        log_attempt(user.id, 'LOGIN_SSO_FAILED_DISABLED', 100, 'DENIED', email_attempt=email)
+        flash("Your account has been disabled. Please contact the administrator.")
+        return redirect(url_for('auth.login'))
         
     # 2. Device Fingerprinting
     ua_string = request.headers.get('User-Agent', '')
@@ -131,6 +136,11 @@ def login():
                 
             log_attempt(None, 'LOGIN_FAILED', 50, 'DENIED', email_attempt=email)
             flash('Invalid credentials') 
+            return redirect(url_for('auth.login'))
+
+        if not user.is_active:
+            log_attempt(user.id, 'LOGIN_FAILED_DISABLED', 100, 'DENIED', email_attempt=email)
+            flash("Your account has been disabled. Please contact the administrator.")
             return redirect(url_for('auth.login'))
 
         # Device Fingerprinting
@@ -208,6 +218,10 @@ def magic_login_verify(token):
     user = User.query.filter_by(email=email).first()
     if not user:
         flash("User not found.")
+        return redirect(url_for('auth.login'))
+
+    if not user.is_active:
+        flash("Your account has been disabled.")
         return redirect(url_for('auth.login'))
         
     ua_string = request.headers.get('User-Agent', '')

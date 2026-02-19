@@ -34,8 +34,10 @@ class User(UserMixin, db.Model):
     org_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=False)
 
     # Security Fields
+    is_active = db.Column(db.Boolean, default=True) # New: Soft delete/archive
     totp_secret = db.Column(db.String(32))  # For 2FA
     honeytoken_seed = db.Column(db.String(64))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
     logs = db.relationship('AccessLog', backref='user', lazy='dynamic')

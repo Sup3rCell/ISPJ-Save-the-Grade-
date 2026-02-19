@@ -9,6 +9,7 @@ from werkzeug.utils import secure_filename
 from models import db, Document, DocVersion, User, AccessLog
 from modules.document_security import DocumentEncryption
 from modules.redaction import RedactionEngine
+from modules.logging import log_attempt
 
 doc_bp = Blueprint('doc', __name__)
 
@@ -554,6 +555,20 @@ def view_shared_p2p(doc_id):
        return "Access Denied or Invitation Pending", 403
 
     doc = share.document
+    
+    # RBAC Classification Check
+    # If document is 'restricted' or 'confidential', ensure user has appropriate role
+    if doc.classification in ['restricted', 'confidential']:
+        if current_user.role not in ['admin', 'manager']:
+            log_attempt(
+                 current_user.id, 
+                 'ACCESS_DENIED_RBAC_SHARED', 
+                 60, 
+                 'DENIED', 
+                 action_details={'doc_id': doc.id, 'classification': doc.classification, 'user_role': current_user.role}
+            )
+            flash(f"Access Denied: You do not have the required clearance ({doc.classification}).", "danger")
+            return redirect(url_for('doc.dashboard'))
     
     # Decryption logic
     content_str = ""

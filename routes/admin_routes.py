@@ -4,12 +4,16 @@ Provides access to system logs, metrics, risk history, and honeytoken alerts
 Restricted to users with 'admin' role
 """
 
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for, abort
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, abort, flash
 from flask_login import login_required, current_user
 from functools import wraps
-from models import db, AccessLog, User, Document, SecurityAlert, DocVersion
 from datetime import datetime, timedelta
 import json
+import secrets
+import string
+from werkzeug.security import generate_password_hash
+from modules.security_utils import check_password_strength, check_pwned_password
+from models import db, AccessLog, User, Document, SecurityAlert, DocVersion, PasswordHistory, DocumentShare, SessionRiskHistory, RiskState
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -559,3 +563,197 @@ def api_top_users():
         {'username': username, 'activity_count': count}
         for username, count in top_users
     ])
+
+# ============================================
+# USER MANAGEMENT
+# ============================================
+
+@admin_bp.route('/users')
+@login_required
+@admin_required
+def manage_users():
+    """List all users for management"""
+    page = request.args.get('page', 1, type=int)
+    search = request.args.get('q', '')
+    
+    query = User.query.filter_by(org_id=current_user.org_id)
+    
+    if search:
+        query = query.filter(
+            (User.username.ilike(f'%{search}%')) | 
+            (User.email.ilike(f'%{search}%'))
+        )
+        
+    users = query.order_by(User.username).paginate(page=page, per_page=20)
+    
+    return render_template('admin/users.html', users=users, search=search)
+
+@admin_bp.route('/users/add', methods=['POST'])
+@login_required
+@admin_required
+def add_user():
+    """Add a new user with auto-generated password"""
+    email = request.form.get('email')
+    username = request.form.get('username')
+    role = request.form.get('role', 'staff')
+    
+    if User.query.filter_by(email=email).first():
+        flash(f'Error: Email {email} already exists.', 'danger')
+        return redirect(url_for('admin.manage_users'))
+        
+    # Auto-generate strong password
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+    password = ''.join(secrets.choice(alphabet) for i in range(16))
+    
+    # Ensure it meets complexity (simple check)
+    while not (any(c.islower() for c in password) and 
+               any(c.isupper() for c in password) and 
+               any(c.isdigit() for c in password) and 
+               any(c in "!@#$%^&*" for c in password)):
+         password = ''.join(secrets.choice(alphabet) for i in range(16))
+         
+    pw_hash = generate_password_hash(password)
+    
+    new_user = User(
+        username=username,
+        email=email,
+        password_hash=pw_hash,
+        role=role,
+        org_id=current_user.org_id,
+        is_active=True
+    )
+    db.session.add(new_user)
+    db.session.flush()
+    
+    # Add to password history
+    ph = PasswordHistory(user_id=new_user.id, password_hash=pw_hash)
+    db.session.add(ph)
+    
+    db.session.commit()
+    
+    # In a real app, send email. Here, show flash message.
+    flash(f'User created! Temporary Credentials: {email} / {password}', 'success')
+    return redirect(url_for('admin.manage_users'))
+
+@admin_bp.route('/users/<int:user_id>/toggle-status', methods=['POST'])
+@login_required
+@admin_required
+def toggle_user_status(user_id):
+    user = User.query.get_or_404(user_id)
+    if user.org_id != current_user.org_id:
+        abort(403)
+        
+    if user.id == current_user.id or user.role == 'admin':
+        flash("You cannot disable admin accounts.", "danger")
+        return redirect(url_for('admin.manage_users'))
+        
+    user.is_active = not user.is_active
+    db.session.commit()
+    
+    status = "activated" if user.is_active else "archived"
+    flash(f'User {user.username} {status}.', 'success')
+    return redirect(url_for('admin.manage_users'))
+
+@admin_bp.route('/users/<int:user_id>/role', methods=['POST'])
+@login_required
+@admin_required
+def update_user_role(user_id):
+    user = User.query.get_or_404(user_id)
+    if user.org_id != current_user.org_id:
+        abort(403)
+        
+    new_role = request.form.get('role')
+    if new_role not in ['staff', 'manager', 'admin']:
+        flash("Invalid role selected.", "danger")
+        return redirect(url_for('admin.manage_users'))
+        
+    user.role = new_role
+    db.session.commit()
+    
+    flash(f'Role for {user.username} updated to {new_role}.', 'success')
+    return redirect(url_for('admin.manage_users'))
+
+@admin_bp.route('/users/<int:user_id>/reset-password', methods=['POST'])
+@login_required
+@admin_required
+def reset_user_password(user_id):
+    user = User.query.get_or_404(user_id)
+    if user.org_id != current_user.org_id:
+        abort(403)
+        
+    # Generate new password
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+    password = ''.join(secrets.choice(alphabet) for i in range(16))
+    
+    # Ensure complexity
+    while not (any(c.islower() for c in password) and 
+               any(c.isupper() for c in password) and 
+               any(c.isdigit() for c in password) and 
+               any(c in "!@#$%^&*" for c in password)):
+         password = ''.join(secrets.choice(alphabet) for i in range(16))
+         
+    pw_hash = generate_password_hash(password)
+    user.password_hash = pw_hash
+    
+    # Add to history
+    ph = PasswordHistory(user_id=user.id, password_hash=pw_hash)
+    db.session.add(ph)
+    
+    db.session.commit()
+    
+    flash(f'Password reset for {user.username}. New Password: {password}', 'warning')
+    return redirect(url_for('admin.manage_users'))
+
+
+@admin_bp.route('/users/<int:user_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_user(user_id):
+    user = User.query.get_or_404(user_id)
+    if user.org_id != current_user.org_id:
+        abort(403)
+        
+    if user.id == current_user.id:
+        flash("You cannot delete your own account.", "danger")
+        return redirect(url_for('admin.manage_users'))
+        
+    if user.role == 'admin':
+        flash("You cannot delete admin accounts.", "danger")
+        return redirect(url_for('admin.manage_users'))
+
+    try:
+        # 1. Delete Documents owned by user (will cascade versions)
+        docs = Document.query.filter_by(owner_id=user.id).all()
+        for doc in docs:
+            db.session.delete(doc)
+            
+        # 2. Update AccessLogs to keep history but remove user link
+        # Use update for bulk operation
+        AccessLog.query.filter_by(user_id=user.id).update({AccessLog.user_id: None})
+        
+        # 3. Delete Document Shares
+        DocumentShare.query.filter_by(shared_with_user_id=user.id).delete()
+        DocumentShare.query.filter_by(shared_by_user_id=user.id).delete()
+        
+        # 4. Delete Password History
+        PasswordHistory.query.filter_by(user_id=user.id).delete()
+        
+        # 5. Review Security Alerts (keep history)
+        SecurityAlert.query.filter_by(user_id=user.id).update({SecurityAlert.user_id: None})
+            
+        # 6. Delete Session Risk History
+        SessionRiskHistory.query.filter_by(user_id=user.id).delete()
+
+        # 7. Delete Risk State
+        RiskState.query.filter_by(user_id=user.id).delete()
+
+        # Correctly delete the User
+        db.session.delete(user)
+        db.session.commit()
+        
+        flash(f'User {user.username} and their data have been permanently deleted.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting user: {str(e)}', 'danger')
+        
+    return redirect(url_for('admin.manage_users'))

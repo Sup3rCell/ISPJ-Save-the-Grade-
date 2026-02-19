@@ -9,214 +9,217 @@
     </div>
 </div>
 
-        <!-- Key Metrics Cards -->
-        <div class="metrics-grid">
-            <div class="metric-card">
-                <div class="metric-icon bg-primary">
-                    <i class="fas fa-users"></i>
-                </div>
-                <div class="metric-content">
-                    <div class="metric-value">{{ total_users }}</div>
-                    <div class="metric-label">Total Users</div>
-                </div>
-            </div>
+<!-- Key Metrics Cards -->
+<div class="metrics-grid">
+    <div class="metric-card">
+        <div class="metric-icon bg-primary">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="metric-content">
+            <div class="metric-value">{{ total_users }}</div>
+            <div class="metric-label">Total Users</div>
+        </div>
+    </div>
 
-            <div class="metric-card">
-                <div class="metric-icon bg-success">
-                    <i class="fas fa-file"></i>
-                </div>
-                <div class="metric-content">
-                    <div class="metric-value">{{ total_documents }}</div>
-                    <div class="metric-label">Documents</div>
-                </div>
-            </div>
+    <div class="metric-card">
+        <div class="metric-icon bg-success">
+            <i class="fas fa-file"></i>
+        </div>
+        <div class="metric-content">
+            <div class="metric-value">{{ total_documents }}</div>
+            <div class="metric-label">Documents</div>
+        </div>
+    </div>
 
-            <div class="metric-card">
-                <div class="metric-icon bg-info">
-                    <i class="fas fa-mouse-pointer"></i>
-                </div>
-                <div class="metric-content">
-                    <div class="metric-value">{{ recent_activity }}</div>
-                    <div class="metric-label">Activities (24h)</div>
-                </div>
-            </div>
+    <div class="metric-card">
+        <div class="metric-icon bg-info">
+            <i class="fas fa-mouse-pointer"></i>
+        </div>
+        <div class="metric-content">
+            <div class="metric-value">{{ recent_activity }}</div>
+            <div class="metric-label">Activities (24h)</div>
+        </div>
+    </div>
 
-            <div class="metric-card">
-                <div class="metric-icon bg-warning">
-                    <i class="fas fa-exclamation-circle"></i>
-                </div>
-                <div class="metric-content">
-                    <div class="metric-value">{{ high_risk_events }}</div>
-                    <div class="metric-label">High Risk Events</div>
-                </div>
-            </div>
+    <div class="metric-card">
+        <div class="metric-icon bg-warning">
+            <i class="fas fa-exclamation-circle"></i>
+        </div>
+        <div class="metric-content">
+            <div class="metric-value">{{ high_risk_events }}</div>
+            <div class="metric-label">High Risk Events</div>
+        </div>
+    </div>
 
-            <div class="metric-card">
-                <div class="metric-icon bg-danger">
-                    <i class="fas fa-bell"></i>
-                </div>
-                <div class="metric-content">
-                    <div class="metric-value">{{ security_alerts }}</div>
-                    <div class="metric-label">Security Alerts</div>
-                </div>
-            </div>
+    <div class="metric-card">
+        <div class="metric-icon bg-danger">
+            <i class="fas fa-bell"></i>
+        </div>
+        <div class="metric-content">
+            <div class="metric-value">{{ security_alerts }}</div>
+            <div class="metric-label">Security Alerts</div>
+        </div>
+    </div>
 
-            <div class="metric-card">
-                <div class="metric-icon bg-secondary">
-                    <i class="fas fa-plane"></i>
+    <div class="metric-card">
+        <div class="metric-icon bg-secondary">
+            <i class="fas fa-plane"></i>
+        </div>
+        <div class="metric-content">
+            <div class="metric-value">{{ impossible_travels }}</div>
+            <div class="metric-label">Impossible Travel</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="charts-section">
+    <div class="row">
+        <!-- Activity Trend Chart -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Activity Trend (7 Days)</h5>
                 </div>
-                <div class="metric-content">
-                    <div class="metric-value">{{ impossible_travels }}</div>
-                    <div class="metric-label">Impossible Travel</div>
+                <div class="card-body">
+                    <canvas id="activityChart" height="80"></canvas>
                 </div>
             </div>
         </div>
 
-        <!-- Charts Section -->
-        <div class="charts-section">
-            <div class="row">
-                <!-- Activity Trend Chart -->
-                <div class="col-lg-8 mb-4">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title">Activity Trend (7 Days)</h5>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="activityChart" height="80"></canvas>
-                        </div>
-                    </div>
+        <!-- Risk Distribution -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Risk Distribution</h5>
                 </div>
-
-                <!-- Risk Distribution -->
-                <div class="col-lg-4 mb-4">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title">Risk Distribution</h5>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="riskChart" height="80"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Quick Stats -->
-        <div class="row mt-4">
-            <div class="col-lg-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title">Quick Actions</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="btn-group" role="group">
-                            <a href="{{ url_for('admin.logs') }}" class="btn btn-outline-primary">
-                                <i class="fas fa-file-alt me-2"></i>View All Logs
-                            </a>
-                            <a href="{{ url_for('admin.risk_history') }}" class="btn btn-outline-warning">
-                                <i class="fas fa-exclamation-triangle me-2"></i>Risk Analysis
-                            </a>
-                            <a href="{{ url_for('admin.honeytoken_alerts') }}" class="btn btn-outline-danger">
-                                <i class="fas fa-bell me-2"></i>Security Alerts
-                            </a>
-                        </div>
-                    </div>
+                <div class="card-body">
+                    <canvas id="riskChart" height="80"></canvas>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Quick Stats -->
+<div class="row mt-4">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('admin.logs') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-file-alt me-2"></i>View All Logs
+                    </a>
+                    <a href="{{ url_for('admin.manage_users') }}" class="btn btn-outline-info">
+                        <i class="fas fa-users me-2"></i>User Management
+                    </a>
+                    <a href="{{ url_for('admin.risk_history') }}" class="btn btn-outline-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Risk Analysis
+                    </a>
+                    <a href="{{ url_for('admin.honeytoken_alerts') }}" class="btn btn-outline-danger">
+                        <i class="fas fa-bell me-2"></i>Security Alerts
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+</div>
+
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 
 <script>
-// Activity Trend Chart
-const activityCtx = document.getElementById('activityChart');
-if (activityCtx) {
-    const activityData = JSON.parse('{{ activity_trend | tojson | safe }}');
-    new Chart(activityCtx, {
-        type: 'line',
-        data: {
-            labels: Object.keys(activityData),
-            datasets: [{
-                label: 'Activities',
-                data: Object.values(activityData),
-                borderColor: '#3498db',
-                backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
+    // Activity Trend Chart
+    const activityCtx = document.getElementById('activityChart');
+    if (activityCtx) {
+        const activityData = JSON.parse('{{ activity_trend | tojson | safe }}');
+        new Chart(activityCtx, {
+            type: 'line',
+            data: {
+                labels: Object.keys(activityData),
+                datasets: [{
+                    label: 'Activities',
+                    data: Object.values(activityData),
+                    borderColor: '#3498db',
+                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
             },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        color: '#7f8c8d'
-                    },
-                    grid: {
-                        color: 'rgba(0,0,0,0.05)'
-                    }
-                },
-                x: {
-                    ticks: {
-                        color: '#7f8c8d'
-                    },
-                    grid: {
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
                         display: false
                     }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#7f8c8d'
+                        },
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#7f8c8d'
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
                 }
             }
-        }
-    });
-}
+        });
+    }
 
-// Risk Distribution Chart
-const riskCtx = document.getElementById('riskChart');
-if (riskCtx) {
-    const riskData = JSON.parse('{{ risk_distribution | tojson | safe }}');
-    new Chart(riskCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Low', 'Medium', 'High', 'Critical'],
-            datasets: [{
-                data: [riskData.low, riskData.medium, riskData.high, riskData.critical],
-                backgroundColor: [
-                    '#27ae60',
-                    '#f39c12',
-                    '#e74c3c',
-                    '#8b0000'
-                ]
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom'
+    // Risk Distribution Chart
+    const riskCtx = document.getElementById('riskChart');
+    if (riskCtx) {
+        const riskData = JSON.parse('{{ risk_distribution | tojson | safe }}');
+        new Chart(riskCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Low', 'Medium', 'High', 'Critical'],
+                datasets: [{
+                    data: [riskData.low, riskData.medium, riskData.high, riskData.critical],
+                    backgroundColor: [
+                        '#27ae60',
+                        '#f39c12',
+                        '#e74c3c',
+                        '#8b0000'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
                 }
             }
-        }
-    });
-}
+        });
+    }
 
-// Update last updated time
-function updateTimestamp() {
-    const now = new Date();
-    document.getElementById('lastUpdate').textContent = now.toLocaleTimeString();
-}
+    // Update last updated time
+    function updateTimestamp() {
+        const now = new Date();
+        document.getElementById('lastUpdate').textContent = now.toLocaleTimeString();
+    }
 
-// Auto-refresh every 30 seconds
-setInterval(updateTimestamp, 30000);
+    // Auto-refresh every 30 seconds
+    setInterval(updateTimestamp, 30000);
 </script>
 {% endblock %}

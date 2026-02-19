@@ -64,27 +64,38 @@
     <div
         class="{% if request.endpoint not in auth_routes and not is_admin and not is_doc and request.endpoint != 'auth.setup_2fa' %}container{% endif %}">
 
-        <!-- Flash Messages -->
-        {% block flash_messages %}
-        {% with messages = get_flashed_messages() %}
-        {% if messages %}
-        <div class="container mt-3" style="max-width: 450px;">
-            {% for message in messages %}
-            <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-        {% endwith %}
-        {% endblock %}
+
 
         {% block content %}{% endblock %}
     </div>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Global Flash Messages (Floating) -->
+    {% block flash_messages %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="alert-container">
+        {% for category, message in messages %}
+        <!-- Handle simple message strings (legacy) vs (category, message) tuples -->
+        <!-- Flask get_flashed_messages(with_categories=true) always returns tuples -->
+        <!-- If category is 'message' (default), map it to 'info' or 'warning' based on content? 
+             Actually style.css has .alert-message? No. 
+             If category is not found in CSS, bootstrap defaults might apply or it might look plain.
+             Let's default simple messages to 'warning' if category is missing/default.
+        -->
+        <div class="alert alert-{{ category if category != 'message' else 'warning' }} alert-dismissible fade show"
+            role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    {% endblock %}
+
     {% block scripts %}{% endblock %}
 </body>
 
