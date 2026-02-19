@@ -55,6 +55,7 @@ def dashboard():
             'id': d.id,
             'name': d.filename,
             'owner': d.owner.username,
+            'is_owner': (d.owner_id == current_user.id),
             'date': d.updated_at.strftime('%b %d, %Y %I:%M %p'),
             'classification': d.classification,
             'size': f"{d.file_size / 1024:.1f} KB" if d.file_size < 1024 * 1024 else f"{d.file_size / (1024 * 1024):.1f} MB",
