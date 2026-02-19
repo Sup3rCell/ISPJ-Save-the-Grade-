@@ -33,7 +33,7 @@
                 class="nav-item {% if request.endpoint == 'doc.shared_with_me' %}active{% endif %}">
                 <i class="fas fa-user-friends"></i> Shared with me
             </a>
-           
+
             <hr class="sidebar-divider">
 
             <a href="{{ url_for('doc.trash') }}"
@@ -58,14 +58,11 @@
                 </div>
                 <div class="modal-body">
                     <!-- Tabs -->
+                    <!-- Tabs -->
                     <ul class="nav nav-tabs mb-3" role="tablist">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#invite-panel"
                                 type="button">Invite People</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#link-panel" type="button"
-                                onclick="fetchLinkIfNeeded()">Get Link</button>
                         </li>
                     </ul>
 
@@ -81,27 +78,6 @@
                                 </div>
                             </div>
                             <div id="inviteResult" class="mt-2" style="display:none;"></div>
-                        </div>
-
-                        <!-- Link Panel -->
-                        <div class="tab-pane fade" id="link-panel">
-                            <p class="small text-muted">Anyone in the organization with this link can view this file.
-                            </p>
-                            <div class="input-group mb-3">
-                                <input type="text" class="form-control" id="shareLinkInput" readonly
-                                    placeholder="Click Generate to get link">
-                                <button class="btn btn-outline-secondary" type="button" onclick="copyShareLink()">
-                                    <i class="fas fa-copy"></i>
-                                </button>
-                            </div>
-                            <div id="shareLoading" class="text-center" style="display: none;">
-                                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                                Generating link...
-                            </div>
-                            <div class="text-center">
-                                <button class="btn btn-sm btn-outline-primary" onclick="forceGenerateLink()">Generate
-                                    Link</button>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -160,13 +136,7 @@
 
             // Reset inputs
             document.getElementById('shareEmailInput').value = '';
-            document.getElementById('shareLinkInput').value = '';
             document.getElementById('inviteResult').style.display = 'none';
-            document.getElementById('shareLoading').style.display = 'none';
-
-            // Reset Tabs
-            const triggerEl = document.querySelector('#shareModal button[data-bs-target="#invite-panel"]');
-            bootstrap.Tab.getInstance(triggerEl)?.show() || new bootstrap.Tab(triggerEl).show();
 
             const modal = new bootstrap.Modal(document.getElementById('shareModal'));
             modal.show();
@@ -197,48 +167,6 @@
                     resultDiv.style.display = 'block';
                     resultDiv.innerHTML = `<div class="alert alert-danger py-1">Network Error</div>`;
                 });
-        }
-
-        function fetchLinkIfNeeded() {
-            const input = document.getElementById('shareLinkInput');
-            if (!input.value) {
-                forceGenerateLink();
-            }
-        }
-
-        function forceGenerateLink() {
-            const input = document.getElementById('shareLinkInput');
-            const loading = document.getElementById('shareLoading');
-
-            loading.style.display = 'block';
-
-            fetch(`/documents/share/${currentDocId}`, { method: 'POST' })
-                .then(r => r.json())
-                .then(data => {
-                    loading.style.display = 'none';
-                    if (data.status === 'success') {
-                        input.value = data.link;
-                    } else {
-                        alert(data.message || 'Error generating link');
-                    }
-                })
-                .catch(err => {
-                    loading.style.display = 'none';
-                    alert('Network error');
-                });
-        }
-
-        function copyShareLink() {
-            const copyText = document.getElementById("shareLinkInput");
-            copyText.select();
-            copyText.setSelectionRange(0, 99999);
-            navigator.clipboard.writeText(copyText.value);
-
-            // Visual feedback
-            const btn = copyText.nextElementSibling;
-            const original = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-check"></i>';
-            setTimeout(() => btn.innerHTML = original, 2000);
         }
     </script>
 </div>

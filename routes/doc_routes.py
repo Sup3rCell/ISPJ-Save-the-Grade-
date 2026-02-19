@@ -28,8 +28,21 @@ from modules.risk_manager import RiskManager
 @doc_bp.route('/dashboard')
 @login_required
 def dashboard():
-    # Real DB Query
-    documents = Document.query.filter_by(owner_id=current_user.id, is_deleted=False).all()
+    # 1. Own Documents
+    own_documents = Document.query.filter_by(owner_id=current_user.id, is_deleted=False).all()
+    
+    # 2. Shared Documents (Accepted)
+    shared_shares = DocumentShare.query.filter_by(shared_with_user_id=current_user.id, status='accepted').all()
+    shared_docs = [s.document for s in shared_shares if not s.document.is_deleted]
+    
+    # Merge and Sort
+    # Use dictionary to dedup by ID just in case (though logic prevents self-share)
+    doc_map = {d.id: d for d in own_documents}
+    for d in shared_docs:
+        doc_map[d.id] = d
+    
+    all_documents = list(doc_map.values())
+    all_documents.sort(key=lambda x: x.updated_at, reverse=True)
     
     # Get Risk Score
     risk_stats = RiskManager.get_current_risk(current_user.id)
@@ -37,7 +50,7 @@ def dashboard():
     
     # Format for template
     docs_display = []
-    for d in documents:
+    for d in all_documents:
         docs_display.append({
             'id': d.id,
             'name': d.filename,
@@ -262,6 +275,10 @@ def view_document(doc_id):
     
     # RBAC/Ownership Check
     if doc.owner_id != current_user.id:
+        # Check if shared
+        share = DocumentShare.query.filter_by(document_id=doc.id, shared_with_user_id=current_user.id, status='accepted').first()
+        if share:
+             return redirect(url_for('doc.view_shared_p2p', doc_id=doc.id))
         abort(403)
         
     # Amount of bytes to read for preview if it's a huge file
@@ -383,96 +400,6 @@ def starred_dashboard():
         })
         
     return render_template('documents/starred.html', documents=docs_display, current_risk_score=current_risk_score)
-
-import uuid
-
-@doc_bp.route('/share/<int:doc_id>', methods=['POST'])
-@login_required
-def generate_share_link(doc_id):
-    doc = Document.query.get_or_404(doc_id)
-    if doc.owner_id != current_user.id:
-        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
-    
-    # Policy Update: Allowed for all, but RBAC protected on access
-        
-    if not doc.share_link_token:
-        doc.share_link_token = uuid.uuid4().hex
-        db.session.commit()
-    
-    share_url = url_for('doc.access_shared_document', token=doc.share_link_token, _external=True)
-    return jsonify({'status': 'success', 'link': share_url})
-
-@doc_bp.route('/s/<token>')
-@login_required
-def access_shared_document(token):
-    doc = Document.query.filter_by(share_link_token=token).first_or_404()
-    
-    # NEW: RBAC Check for Link Sharing
-    if doc.classification in ['restricted', 'confidential']:
-        if current_user.role not in ['admin', 'manager']:
-            # Log the denied attempt
-            log_attempt(
-                 current_user.id, 
-                 'ACCESS_DENIED_RBAC_LINK', 
-                 60, 
-                 'DENIED', 
-                 action_details={'doc_id': doc.id, 'classification': doc.classification, 'user_role': current_user.role}
-            )
-            flash(f"Access Denied: You do not have the required clearance ({doc.classification}).", "danger")
-            return redirect(url_for('doc.dashboard'))
-
-    # Decrypt content for display (similar to view_document)
-    content_str = ""
-    try:
-        # 1. Read Encrypted File
-        # 1. Read Encrypted Content (From DB BLOB)
-        if not doc.file_data:
-             return "File content missing.", 404
-
-        # Read the file data
-        file_content = doc.file_data
-            
-        # 2. Decrypt
-        if doc.is_encrypted:
-            # Extract Tag
-            tag = file_content[-16:]
-            ciphertext = file_content[:-16]
-            
-            # Decode Keys
-            key = base64.b64decode(doc.encryption_key)
-            iv = base64.b64decode(doc.encryption_iv)
-            
-            decrypted_bytes = encryption_engine.decrypt_data(ciphertext, key, iv, tag)
-        else:
-            decrypted_bytes = file_content
-            
-        # 3. Handle Content Type
-        if doc.mime_type == 'application/pdf':
-            pdf_b64 = base64.b64encode(decrypted_bytes).decode('utf-8')
-            content_str = "" # No text content
-        else:
-            content_str = decrypted_bytes.decode('utf-8', errors='replace')
-            
-    except Exception as e:
-        print(f"Decryption Error: {e}")
-        content_str = "[Error: Decryption Failed]"
-
-    # Risk Calculation
-    risk_score = session.get('risk_score', 0)
-    watermark_text = f"SHARED | {current_user.username} | {datetime.now().strftime('%Y-%m-%d %H:%M')}"
-    
-    doc_obj = {
-        'name': doc.filename,
-        'classification': doc.classification,
-        'content': content_str,
-        'is_pdf': doc.mime_type == 'application/pdf',
-        'pdf_data': pdf_b64 if doc.mime_type == 'application/pdf' else None
-    }
-    
-    return render_template('documents/secure_viewer.html', 
-                         document=doc_obj, 
-                         watermark_text=watermark_text,
-                         risk_score=risk_score)
 
 # ============================================
 # P2P SHARING (INVITE & ACCEPT)
@@ -598,20 +525,34 @@ def view_shared_p2p(doc_id):
     
     # Decryption logic
     content_str = ""
+    pdf_b64 = None
+    is_pdf = doc.mime_type == 'application/pdf'
+    
     try:
         if doc.file_data:
             encrypted_data = doc.file_data
             
             # Decrypt
-            key_bytes = base64.b64decode(doc.encryption_key)
-            iv_bytes = base64.b64decode(doc.encryption_iv)
+            if doc.is_encrypted:
+                key_bytes = base64.b64decode(doc.encryption_key)
+                iv_bytes = base64.b64decode(doc.encryption_iv)
+                
+                # Extract tags (assuming same format: ciphertext + tag)
+                tag = encrypted_data[-16:]
+                ciphertext = encrypted_data[:-16]
+                
+                decrypted_bytes = encryption_engine.decrypt_data(ciphertext, key_bytes, iv_bytes, tag)
+            else:
+                decrypted_bytes = encrypted_data
             
-            # Extract tags (assuming same format: ciphertext + tag)
-            tag = encrypted_data[-16:]
-            ciphertext = encrypted_data[:-16]
-            
-            decrypted_bytes = encryption_engine.decrypt_data(ciphertext, key_bytes, iv_bytes, tag)
-            content_str = decrypted_bytes.decode('utf-8')
+            # 3. Handle Content Type
+            if is_pdf:
+                # For PDF, we send base64 to template to render in iframe
+                pdf_b64 = base64.b64encode(decrypted_bytes).decode('utf-8')
+                content_str = ""
+            else:
+                # Text based
+                content_str = decrypted_bytes.decode('utf-8', errors='replace')
         else:
             content_str = "[Error: File Content Missing]"
     except Exception as e:
@@ -623,7 +564,9 @@ def view_shared_p2p(doc_id):
     doc_obj = {
         'name': doc.filename,
         'classification': doc.classification,
-        'content': content_str
+        'content': content_str,
+        'is_pdf': is_pdf,
+        'pdf_data': pdf_b64
     }
     
     return render_template('documents/secure_viewer.html', 
