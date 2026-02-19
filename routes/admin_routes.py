@@ -379,7 +379,9 @@ def honeytoken_alerts():
 @admin_required
 def test_risk():
     """Admin-only page to generate test risk events"""
-    return render_template('admin/test_risk.html')
+    # Fetch all users for selection, except current admin to avoid self-lockout confusion (optional)
+    users = User.query.all()
+    return render_template('admin/test_risk.html', users=users)
 
 
 @admin_bp.route('/test-risk/run', methods=['POST'])
@@ -483,6 +485,34 @@ def run_test_risk():
             outcome='restricted'
         )
         created.append(log)
+
+    elif scenario == 'manual_increase':
+        target_user_id = payload.get('user_id')
+        if not target_user_id:
+             return jsonify({'status': 'error', 'error': 'Target user required for manual increase'}), 400
+        
+        from modules.risk_manager import RiskManager
+        new_score = RiskManager.update_risk(target_user_id, 10, "Manual Risk Increase via Test Page")
+        
+        return jsonify({
+            'status': 'success',
+            'created': 1,
+            'message': f'Risk score increased. New score: {new_score}'
+        })
+
+    elif scenario == 'manual_reset':
+        target_user_id = payload.get('user_id')
+        if not target_user_id:
+             return jsonify({'status': 'error', 'error': 'Target user required for manual reset'}), 400
+             
+        from modules.risk_manager import RiskManager
+        RiskManager.reset_risk(target_user_id, "Manual Risk Reset via Test Page")
+        
+        return jsonify({
+            'status': 'success',
+            'created': 1,
+            'message': 'Risk score reset to 0.'
+        })
 
     else:
         return jsonify({'status': 'error', 'error': 'Unknown scenario'}), 400
