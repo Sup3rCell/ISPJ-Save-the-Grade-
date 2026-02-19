@@ -10,6 +10,10 @@ def create_app():
     # 1. Initialize Flask
     app = Flask(__name__)
     
+    # NEW: Fix for Render/Heroku Proxy (ensures https:// URLs for OAuth)
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+    
     # 2. Load Config
     app.config.from_object(Config)
     

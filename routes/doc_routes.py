@@ -393,9 +393,7 @@ def generate_share_link(doc_id):
     if doc.owner_id != current_user.id:
         return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
     
-    # Policy Check
-    if doc.classification != 'internal':
-        return jsonify({'status': 'error', 'message': 'Only Internal documents can be shared via link.'}), 403
+    # Policy Update: Allowed for all, but RBAC protected on access
         
     if not doc.share_link_token:
         doc.share_link_token = uuid.uuid4().hex
@@ -409,26 +407,52 @@ def generate_share_link(doc_id):
 def access_shared_document(token):
     doc = Document.query.filter_by(share_link_token=token).first_or_404()
     
+    # NEW: RBAC Check for Link Sharing
+    if doc.classification in ['restricted', 'confidential']:
+        if current_user.role not in ['admin', 'manager']:
+            # Log the denied attempt
+            log_attempt(
+                 current_user.id, 
+                 'ACCESS_DENIED_RBAC_LINK', 
+                 60, 
+                 'DENIED', 
+                 action_details={'doc_id': doc.id, 'classification': doc.classification, 'user_role': current_user.role}
+            )
+            flash(f"Access Denied: You do not have the required clearance ({doc.classification}).", "danger")
+            return redirect(url_for('doc.dashboard'))
+
     # Decrypt content for display (similar to view_document)
     content_str = ""
     try:
         # 1. Read Encrypted File
-        if os.path.exists(doc.filepath):
-            with open(doc.filepath, 'rb') as f:
-                encrypted_data = f.read()
+        # 1. Read Encrypted Content (From DB BLOB)
+        if not doc.file_data:
+             return "File content missing.", 404
+
+        # Read the file data
+        file_content = doc.file_data
             
-            # 2. Decrypt
-            # Assuming key is accessible. In real world, we need key management.
-            # Here we assume key is in DB (base64)
-            key_bytes = base64.b64decode(doc.encryption_key)
-            iv_bytes = base64.b64decode(doc.encryption_iv)
+        # 2. Decrypt
+        if doc.is_encrypted:
+            # Extract Tag
+            tag = file_content[-16:]
+            ciphertext = file_content[:-16]
             
-            decrypted_bytes = encryption_engine.decrypt_data(
-                {'ciphertext': base64.b64encode(encrypted_data).decode('utf-8'), 'key': doc.encryption_key, 'iv': doc.encryption_iv}
-            )
-            content_str = decrypted_bytes.decode('utf-8')
+            # Decode Keys
+            key = base64.b64decode(doc.encryption_key)
+            iv = base64.b64decode(doc.encryption_iv)
+            
+            decrypted_bytes = encryption_engine.decrypt_data(ciphertext, key, iv, tag)
         else:
-            content_str = "[Error: File Not Found on Server]"
+            decrypted_bytes = file_content
+            
+        # 3. Handle Content Type
+        if doc.mime_type == 'application/pdf':
+            pdf_b64 = base64.b64encode(decrypted_bytes).decode('utf-8')
+            content_str = "" # No text content
+        else:
+            content_str = decrypted_bytes.decode('utf-8', errors='replace')
+            
     except Exception as e:
         print(f"Decryption Error: {e}")
         content_str = "[Error: Decryption Failed]"
@@ -440,7 +464,9 @@ def access_shared_document(token):
     doc_obj = {
         'name': doc.filename,
         'classification': doc.classification,
-        'content': content_str
+        'content': content_str,
+        'is_pdf': doc.mime_type == 'application/pdf',
+        'pdf_data': pdf_b64 if doc.mime_type == 'application/pdf' else None
     }
     
     return render_template('documents/secure_viewer.html', 
@@ -533,7 +559,7 @@ def shared_with_me():
             'share_id': s.id,
             'doc_id': d.id,
             'name': d.filename,
-            'owner': d.owner.username,
+            'owner': d.owner.username, 
             'date': s.created_at.strftime('%b %d, %Y'),
             'status': s.status,
             'classification': d.classification,

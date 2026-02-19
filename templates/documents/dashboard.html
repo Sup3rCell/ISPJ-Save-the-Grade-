@@ -80,11 +80,10 @@
             <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
                 <li><a class="dropdown-item" href="{{ url_for('doc.view_document', doc_id=doc.id) }}"><i
                             class="fas fa-eye me-2"></i> View</a></li>
-                {% if doc.classification == 'internal' %}
+
                 <li><a class="dropdown-item" href="#"
                         onclick="openShareModal({{ doc.id }}, '{{ doc.name }}'); return false;"><i
                             class="fas fa-share-alt me-2"></i> Share</a></li>
-                {% endif %}
                 <li>
                     <hr class="dropdown-divider">
                 </li>
