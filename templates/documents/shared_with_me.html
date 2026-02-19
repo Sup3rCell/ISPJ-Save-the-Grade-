@@ -93,6 +93,8 @@
             <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
                 <li><a class="dropdown-item" href="{{ url_for('doc.view_shared_p2p', doc_id=share.doc_id) }}"><i
                             class="fas fa-eye me-2"></i> View</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('doc.download_document', doc_id=share.doc_id) }}"><i
+                            class="fas fa-download me-2"></i> Download</a></li>
             </ul>
         </div>
         {% endif %}

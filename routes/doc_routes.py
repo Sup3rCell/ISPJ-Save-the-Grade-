@@ -16,6 +16,10 @@ doc_bp = Blueprint('doc', __name__)
 # Initialize engines
 encryption_engine = DocumentEncryption()
 redaction_engine = RedactionEngine()
+from modules.watermarker import WatermarkEngine
+watermark_engine = WatermarkEngine()
+from modules.converter import DocumentConverter
+doc_converter = DocumentConverter()
 
 ALLOWED_EXTENSIONS = {'txt', 'md', 'csv', 'log', 'pdf'} # For MVP demo of redaction
 
@@ -314,16 +318,17 @@ def view_document(doc_id):
             
         # 3. Handle Content Type
         if is_pdf:
-            # For PDF, we send base64 to template to render in iframe
-            pdf_b64 = base64.b64encode(decrypted_bytes).decode('utf-8')
+            # Convert PDF to images
+            images_list = doc_converter.pdf_to_images(decrypted_bytes)
         else:
             # Text based
-            content_str = decrypted_bytes.decode('utf-8', errors='replace')
+            text_str = decrypted_bytes.decode('utf-8', errors='replace')
+            images_list = doc_converter.text_to_images(text_str)
         
     except Exception as e:
-        current_app.logger.error(f"Decryption Error for doc {doc_id}: {e}")
+        current_app.logger.error(f"Decryption/Conversion Error for doc {doc_id}: {e}")
         flash("Error decrypting document.", "danger")
-        content_str = "[Error: Decryption Failed]"
+        images_list = []
         
     # Risk Calculation (Mocking the call structure for now, user to replace with real engine)
     # Using existing session risk if available
@@ -332,13 +337,12 @@ def view_document(doc_id):
     # Generate watermark
     watermark_text = f"{current_user.username} | {request.remote_addr} | {datetime.now().strftime('%Y-%m-%d %H:%M')}"
     
-    # Pass dict object to template as it expects 'document.name', 'document.content'
+    # Pass dict object to template as it expects 'document.name' and 'document.pages'
     doc_obj = {
+        'id': doc.id,
         'name': doc.filename,
         'classification': doc.classification,
-        'content': content_str,
-        'is_pdf': is_pdf,
-        'pdf_data': pdf_b64
+        'pages': images_list, # List of b64 strings
     }
     
     return render_template('documents/secure_viewer.html', 
@@ -546,31 +550,126 @@ def view_shared_p2p(doc_id):
             else:
                 decrypted_bytes = encrypted_data
             
-            # 3. Handle Content Type
+            # 3. Handle Content Type (Convert to Image)
             if is_pdf:
-                # For PDF, we send base64 to template to render in iframe
-                pdf_b64 = base64.b64encode(decrypted_bytes).decode('utf-8')
-                content_str = ""
+                images_list = doc_converter.pdf_to_images(decrypted_bytes)
             else:
                 # Text based
-                content_str = decrypted_bytes.decode('utf-8', errors='replace')
+                text_str = decrypted_bytes.decode('utf-8', errors='replace')
+                images_list = doc_converter.text_to_images(text_str)
+
         else:
-            content_str = "[Error: File Content Missing]"
+           images_list = []
+
     except Exception as e:
         print(f"Decryption Error: {e}")
-        content_str = "[Error: Decryption Failed]"
+        images_list = []
 
     watermark_text = f"SHARED-P2P | {current_user.username} | {datetime.now().strftime('%Y-%m-%d %H:%M')}"
     
     doc_obj = {
+        'id': doc.id,
         'name': doc.filename,
         'classification': doc.classification,
-        'content': content_str,
-        'is_pdf': is_pdf,
-        'pdf_data': pdf_b64
+        'pages': images_list
     }
     
     return render_template('documents/secure_viewer.html', 
                          document=doc_obj, 
                          watermark_text=watermark_text,
                          risk_score=0)
+
+# ============================================
+# SECURE DOWNLOAD
+# ============================================
+
+from modules.watermarker import WatermarkEngine
+watermark_engine = WatermarkEngine()
+
+@doc_bp.route('/download/<int:doc_id>')
+@login_required
+def download_document(doc_id):
+    doc = Document.query.get_or_404(doc_id)
+    
+    # 1. Permission Check
+    has_access = False
+    if doc.owner_id == current_user.id:
+        has_access = True
+    else:
+        share = DocumentShare.query.filter_by(document_id=doc.id, shared_with_user_id=current_user.id, status='accepted').first()
+        if share:
+            has_access = True
+            
+    if not has_access:
+        abort(403)
+        
+    # 2. RBAC Check (similar to view)
+    if doc.classification in ['restricted', 'confidential']:
+        if current_user.role not in ['admin', 'manager']:
+             log_attempt(current_user.id, 'DOWNLOAD_DENIED_RBAC', 60, 'DENIED', action_details={'doc_id': doc.id})
+             flash(f"Access Denied: You do not have download clearance for {doc.classification}.", "danger")
+             return redirect(url_for('doc.dashboard'))
+
+    try:
+        # 3. Decrypt
+        if not doc.file_data:
+            return "File content missing", 404
+            
+        file_bytes = doc.file_data
+        if doc.is_encrypted:
+            tag = file_bytes[-16:]
+            ciphertext = file_bytes[:-16]
+            key = base64.b64decode(doc.encryption_key)
+            iv = base64.b64decode(doc.encryption_iv)
+            decrypted_bytes = encryption_engine.decrypt_data(ciphertext, key, iv, tag)
+        else:
+            decrypted_bytes = file_bytes
+            
+        # 4. Apply Watermark
+        watermark_text = f"{current_user.username} | {request.remote_addr} | {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        
+        final_file_bytes = decrypted_bytes
+        download_name = doc.filename
+        mimetype = doc.mime_type
+        
+        # Determine Handler
+        ext = doc.filename.rsplit('.', 1)[1].lower() if '.' in doc.filename else ''
+        
+        if ext == 'pdf' or mimetype == 'application/pdf':
+            final_file_bytes = watermark_engine.process_pdf(decrypted_bytes, watermark_text)
+            
+        elif ext in ['jpg', 'jpeg', 'png'] or mimetype.startswith('image/'):
+            final_file_bytes = watermark_engine.process_image(decrypted_bytes, watermark_text)
+            # If original was jpg, we are returning png now, update filename/mime?
+            # Watermark engine returns PNG bytes.
+            base_name = os.path.splitext(doc.filename)[0]
+            download_name = f"{base_name}_secure.png"
+            mimetype = 'image/png'
+            
+        elif ext in ['txt', 'md', 'csv', 'log']:
+            # Convert to PDF for protection
+            # We need to render the text content carefully
+            pdf_bytes = watermark_engine.text_to_pdf(decrypted_bytes, watermark_text)
+            if pdf_bytes:
+                final_file_bytes = pdf_bytes
+                base_name = os.path.splitext(doc.filename)[0]
+                download_name = f"{base_name}_secure.pdf"
+                mimetype = 'application/pdf'
+            else:
+                # Fallback: Download original text but log warning?
+                flash("Warning: Could not convert text to protected PDF. Downloading raw file with risk logged.", "warning")
+                log_attempt(current_user.id, 'DOWNLOAD_UNPROTECTED_TEXT', 40, 'WARNING', action_details={'doc_id': doc.id})
+
+        # 5. Send File
+        return send_file(
+            io.BytesIO(final_file_bytes),
+            mimetype=mimetype,
+            as_attachment=True,
+            download_name=download_name
+        )
+
+    except Exception as e:
+        print(f"Download Error: {e}")
+        log_attempt(current_user.id, 'DOWNLOAD_ERROR', 0, 'ERROR', action_details={'error': str(e)})
+        flash("Error preparing download.", "danger")
+        return redirect(url_for('doc.dashboard'))

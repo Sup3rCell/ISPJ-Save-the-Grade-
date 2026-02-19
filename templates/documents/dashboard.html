@@ -86,6 +86,8 @@
                 <li><a class="dropdown-item" href="#"
                         onclick="openShareModal({{ doc.id }}, '{{ doc.name }}'); return false;"><i
                             class="fas fa-share-alt me-2"></i> Share</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('doc.download_document', doc_id=doc.id) }}"><i
+                            class="fas fa-download me-2"></i> Download</a></li>
                 <li>
                     <hr class="dropdown-divider">
                 </li>
