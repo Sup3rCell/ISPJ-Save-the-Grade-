@@ -115,17 +115,14 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% set current_risk = log.user.risk_state.current_score if log.user and log.user.risk_state
-                            else (log.risk_score if log.risk_score else 0) %}
-
-                            {% if current_risk >= 80 %}
-                            <span class="badge bg-danger">{{ current_risk }}</span>
-                            {% elif current_risk >= 60 %}
-                            <span class="badge bg-warning">{{ current_risk }}</span>
-                            {% elif current_risk >= 30 %}
-                            <span class="badge bg-info">{{ current_risk }}</span>
+                            {% if log.risk_score >= 80 %}
+                            <span class="badge bg-danger">{{ log.risk_score }}</span>
+                            {% elif log.risk_score >= 60 %}
+                            <span class="badge bg-warning">{{ log.risk_score }}</span>
+                            {% elif log.risk_score >= 30 %}
+                            <span class="badge bg-info">{{ log.risk_score }}</span>
                             {% else %}
-                            <span class="badge bg-success">{{ current_risk }}</span>
+                            <span class="badge bg-success">{{ log.risk_score }}</span>
                             {% endif %}
                         </td>
                         <td>
