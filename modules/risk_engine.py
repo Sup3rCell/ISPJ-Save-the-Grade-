@@ -577,16 +577,21 @@ def reduce_risk_on_2fa_success(user):
         if recent_high_risk:
             original_risk = recent_high_risk.risk_score
         
-        # RESET to 0 - strong identity verification clears all risk
-        reset_risk = 0
+        # REDUCE by 30 (User Request) - strong identity verification mitigation
+        # instead of full reset.
+        from modules.risk_manager import RiskManager
         
-        print(f"[RISK ENGINE] ✅ 2FA Success: Identity verified. Risk RESET from {original_risk} → {reset_risk}")
+        # Calculate new score
+        reduction_amount = -30
+        new_score = RiskManager.update_risk(user.id, reduction_amount, "2FA Verification Success")
+        
+        print(f"[RISK ENGINE] ✅ 2FA Success: Identity verified. Risk Reduced by {abs(reduction_amount)}. New Score: {new_score}")
         
         return {
             'success': True,
             'original_risk': original_risk,
-            'reduced_risk': reset_risk,
-            'reduction_reason': f'✅ 2FA Verification Success (Risk Reset to 0)',
+            'reduced_risk': new_score,
+            'reduction_reason': f'✅ 2FA Verification Success (Risk -30)',
             'user_id': user.id
         }
     

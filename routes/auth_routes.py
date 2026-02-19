@@ -23,16 +23,52 @@ from datetime import datetime, timedelta
 auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.before_app_request
-def check_concurrent_session():
+def check_session_security():
     """
-    Middleware to enforce single-session policy.
+    Middleware to enforce single-session policy AND global risk limits.
     """
     if current_user.is_authenticated:
+        # 1. Concurrent Session Check
         if current_user.session_token and session.get('session_token') != current_user.session_token:
             logout_user()
             session.clear()
             flash("You have been logged out because a new session was started on another device.")
             return redirect(url_for('auth.login'))
+
+        # 2. Global Risk Enforcement (Zero-Trust Gatekeeper)
+        try:
+            # We fetch the score directly from the risk manager (cached/fast)
+            risk_data = RiskManager.get_current_risk(current_user.id)
+            current_score = risk_data.get('score', 0)
+            
+            # CRITICAL RISK: >= 80
+            if current_score >= 80:
+                # Scenario A: User HAS 2FA -> Redirect to Step-Up
+                # We check if they are ALREADY in the process of verifying (avoid loop)
+                if current_user.totp_secret and request.endpoint != 'auth.verify_2fa' and request.endpoint != 'auth.logout':
+                     session['pre_2fa_user_id'] = current_user.id
+                     session['risk_score'] = current_score
+                     session['auth_method'] = 'step_up'
+                     flash("High risk detected. Please verify your identity to continue.", "warning")
+                     return redirect(url_for('auth.verify_2fa'))
+                
+                # Scenario B: User NO 2FA -> Strict Block
+                elif not current_user.totp_secret:
+                    log_attempt(
+                        current_user.id, 
+                        'SESSION_TERMINATED_HIGH_RISK', 
+                        current_score, 
+                        'DENIED', 
+                        action_details={'reason': 'Risk >= 80 and No 2FA enabled'}
+                    )
+                    logout_user()
+                    session.clear()
+                    flash("Account Locked: High security risk detected. Please contact your administrator to unlock your account.", "danger")
+                    return redirect(url_for('auth.login'))
+            
+        except Exception as e:
+            print(f"Risk Gatekeeper Error: {e}")
+            pass
 
 # --- GOOGLE LOGIN ROUTES ---
 
@@ -400,7 +436,7 @@ def verify_2fa():
         
         totp = pyotp.TOTP(user.totp_secret)
         if totp.verify(otp_token):
-            # ✅ 2FA Successfully Verified - Reset Risk Score to 0
+            # ✅ 2FA Successfully Verified - Reduce Risk Score (-30)
             risk_reduction = reduce_risk_on_2fa_success(user)
             
             # 🧹 Clear old high-risk logs that would be inherited
@@ -420,8 +456,10 @@ def verify_2fa():
             
             login_user(user)
             
-            # Set risk to 0 after successful 2FA
-            risk = 0
+            # Get new updated risk score
+            current_risk_data = RiskManager.get_current_risk(user.id)
+            risk = current_risk_data.get('score', 0)
+            
             risk_factors = []
             risk_components = {}
             auth_method = session.get('auth_method', 'password') # e.g. 'google' or 'password'

@@ -310,5 +310,27 @@
 
     // Reset modal on close
     document.getElementById('uploadModal').addEventListener('hidden.bs.modal', resetUploadModal);
+
+    // ==========================================
+    // ZERO-TRUST SESSION POLLER
+    // ==========================================
+    // Continuously checks risk score in background
+    setInterval(() => {
+        fetch('/auth/session/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+            .then(response => {
+                if (response.status === 403) {
+                    // Terminate (High Risk)
+                    window.location.href = '/auth/logout';
+                } else if (response.status === 429) {
+                    // Restrict (Medium Risk) - Show Toast/Warning
+                    // We could use a specific UI element for this
+                    console.warn("Session Restricted due to Risk");
+                }
+            })
+            .catch(err => console.error("Session Poll Error:", err));
+    }, 10000); // Check every 10 seconds
 </script>
 {% endblock %}

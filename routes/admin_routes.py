@@ -735,6 +735,20 @@ def reset_user_password(user_id):
     return redirect(url_for('admin.manage_users'))
 
 
+@admin_bp.route('/users/<int:user_id>/reset-risk', methods=['POST'])
+@login_required
+@admin_required
+def reset_user_risk(user_id):
+    user = User.query.get_or_404(user_id)
+    if user.org_id != current_user.org_id:
+        abort(403)
+        
+    RiskManager.reset_risk(user.id, reason=f"Manual Reset by Admin {current_user.username}")
+    
+    flash(f'Risk score for {user.username} has been reset to 0.', 'success')
+    return redirect(url_for('admin.manage_users'))
+
+
 @admin_bp.route('/users/<int:user_id>/delete', methods=['POST'])
 @login_required
 @admin_required
