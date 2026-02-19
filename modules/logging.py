@@ -2,6 +2,24 @@ from flask import request
 from models import db, AccessLog
 from datetime import datetime
 import json
+import requests
+
+def get_ip_location(ip_address):
+    """
+    Resolves IP address to Country using free API.
+    """
+    if not ip_address or ip_address in ['127.0.0.1', 'localhost', '::1']:
+        return "Local/Private"
+        
+    try:
+        # Using ip-api.com (free, 45req/min)
+        response = requests.get(f"http://ip-api.com/json/{ip_address}?fields=country", timeout=2)
+        if response.status_code == 200:
+            data = response.json()
+            return data.get('country', 'Unknown')
+    except Exception:
+        pass
+    return "Unknown"
 
 def log_attempt(
     user_id,
@@ -45,6 +63,9 @@ def log_attempt(
         log.location = f"Attempted Email: {email_attempt}"
     
     # We will log Geo-IP location here once Teammate 2 implements Geo-IP lookups.
+    if not log.location:
+        log.location = get_ip_location(log.ip_address)
+    
     
     db.session.add(log)
     db.session.commit()
