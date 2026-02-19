@@ -3,20 +3,34 @@ from models import db, AccessLog
 from datetime import datetime
 import json
 import requests
+import ipaddress
 
 def get_ip_location(ip_address):
     """
     Resolves IP address to Country using free API.
+    Handles private/local IPs gracefully.
     """
-    if not ip_address or ip_address in ['127.0.0.1', 'localhost', '::1']:
-        return "Local/Private"
+    if not ip_address:
+        return "Unknown"
         
     try:
+        # Check for private/local IPs using standard library
+        ip = ipaddress.ip_address(ip_address)
+        if ip.is_private or ip.is_loopback:
+            return "Local Network (Private)"
+    except ValueError:
+        pass # Not a valid IP, proceed to try API anyway or return Unknown
+
+    try:
         # Using ip-api.com (free, 45req/min)
-        response = requests.get(f"http://ip-api.com/json/{ip_address}?fields=country", timeout=2)
+        # It returns 'fail' for reserved IPs if we missed any
+        response = requests.get(f"http://ip-api.com/json/{ip_address}?fields=status,country", timeout=2)
         if response.status_code == 200:
             data = response.json()
-            return data.get('country', 'Unknown')
+            if data.get('status') == 'success':
+                return data.get('country', 'Unknown')
+            elif data.get('message') == 'reserved range':
+                return "Local Network (Reserved)"
     except Exception:
         pass
     return "Unknown"
@@ -45,11 +59,18 @@ def log_attempt(
     if action_details:
         action_details_payload = json.dumps(action_details)
 
+    # Get Real IP (handle Proxy/Render)
+    if 'X-Forwarded-For' in request.headers:
+        # X-Forwarded-For: client, proxy1, proxy2
+        ip_address = request.headers['X-Forwarded-For'].split(',')[0].strip()
+    else:
+        ip_address = request.remote_addr
+
     log = AccessLog(
         user_id=user_id,
         document_id=document_id,  # New: Added optional document ID
         action=action,
-        ip_address=request.remote_addr,
+        ip_address=ip_address,
         device_info=request.headers.get('User-Agent'),
         risk_score=risk,
         risk_factors=risk_factors_payload,
